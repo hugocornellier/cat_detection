@@ -25,6 +25,7 @@ dev_dependencies:
 
 flutter:
   assets:
+    - assets/models/cat_face_localizer.tflite
     - assets/models/cat_face_landmarks_full.tflite
     - assets/samples/
 

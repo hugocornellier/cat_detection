@@ -109,6 +109,9 @@ class CatDetector {
     }
 
     if (needsFace) {
+      _localizer = CatFaceLocalizer();
+      await _localizer!.initialize(performanceConfig);
+
       if (landmarkModel == CatLandmarkModel.ensemble) {
         _ensemble = EnsembleLandmarkModel(poolSize: interpreterPoolSize);
         await _ensemble!.initialize(
@@ -187,11 +190,19 @@ class CatDetector {
     }
 
     if (needsFace) {
+      if (localizerBytes == null) {
+        throw ArgumentError(
+          'localizerBytes is required for full mode',
+        );
+      }
       if (landmarkBytes == null) {
         throw ArgumentError(
           'landmarkBytes is required for full mode',
         );
       }
+
+      _localizer = CatFaceLocalizer();
+      await _localizer!.initializeFromBuffer(localizerBytes, performanceConfig);
 
       if (landmarkModel == CatLandmarkModel.ensemble) {
         if (ensemble256Bytes == null || ensemble320Bytes == null) {
@@ -301,15 +312,43 @@ class CatDetector {
       CatFace? face;
 
       if (mode == CatDetectionMode.full) {
-        // Use body bbox directly as face region (no face localizer yet)
-        final faceBbox = animal.boundingBox;
-
-        face = await _runFaceLandmarks(
-          image,
-          faceBbox,
+        final (cx1, cy1, cx2, cy2) = _expandBox(
+          animal.boundingBox.left,
+          animal.boundingBox.top,
+          animal.boundingBox.right,
+          animal.boundingBox.bottom,
+          cropMargin,
           imageWidth,
           imageHeight,
         );
+
+        final int cropW = cx2 - cx1;
+        final int cropH = cy2 - cy1;
+        if (cropW >= 1 && cropH >= 1) {
+          final expandedCrop = image.region(cv.Rect(cx1, cy1, cropW, cropH));
+          try {
+            final BoundingBox? faceBboxInCrop =
+                await _localizer!.detect(expandedCrop);
+
+            if (faceBboxInCrop != null) {
+              final faceBboxInImage = BoundingBox.ltrb(
+                faceBboxInCrop.left + cx1,
+                faceBboxInCrop.top + cy1,
+                faceBboxInCrop.right + cx1,
+                faceBboxInCrop.bottom + cy1,
+              );
+
+              face = await _runFaceLandmarks(
+                image,
+                faceBboxInImage,
+                imageWidth,
+                imageHeight,
+              );
+            }
+          } finally {
+            expandedCrop.dispose();
+          }
+        }
       }
 
       cats.add(Cat(
@@ -361,4 +400,23 @@ class CatDetector {
     return CatFace(boundingBox: faceBbox, landmarks: landmarks);
   }
 
+  /// Expands a bounding box by [margin] fraction on each side, clamped to image bounds.
+  static (int, int, int, int) _expandBox(
+    double x1,
+    double y1,
+    double x2,
+    double y2,
+    double margin,
+    int imgW,
+    int imgH,
+  ) {
+    final bw = x2 - x1;
+    final bh = y2 - y1;
+    return (
+      (x1 - bw * margin).clamp(0, imgW).toInt(),
+      (y1 - bh * margin).clamp(0, imgH).toInt(),
+      (x2 + bw * margin).clamp(0, imgW).toInt(),
+      (y2 + bh * margin).clamp(0, imgH).toInt(),
+    );
+  }
 }

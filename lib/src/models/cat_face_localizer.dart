@@ -9,7 +9,9 @@ import '../util/image_utils.dart';
 /// Input 224x224, output [1,4] single bounding box in XYXY format,
 /// normalized to [0,1]. No anchors, no NMS, single bbox per image.
 ///
-/// NOTE: This model has not been trained yet. The asset path is a placeholder.
+/// Trained on CatFLW dataset with CIoU + L1 loss, two-phase training
+/// (frozen backbone + fine-tune). Bounding boxes derived from 48 landmark
+/// annotations with 0.12 margin.
 class CatFaceLocalizer {
   static const int inputSize = 224;
 
