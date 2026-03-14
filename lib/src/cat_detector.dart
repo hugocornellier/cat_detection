@@ -2,11 +2,7 @@ import 'dart:typed_data';
 import 'package:opencv_dart/opencv_dart.dart' as cv;
 import 'package:animal_detection/animal_detection.dart';
 import 'types.dart';
-import 'util/image_utils.dart';
 import 'util/model_downloader.dart';
-import 'models/cat_face_localizer.dart';
-import 'models/cat_landmark_model.dart';
-import 'models/ensemble_landmark_model.dart';
 
 /// On-device cat detection using a unified multi-stage TensorFlow Lite pipeline.
 ///
@@ -31,9 +27,9 @@ class CatDetector {
   AnimalDetector? _animalDetector;
 
   // Face pipeline (full)
-  CatFaceLocalizer? _localizer;
-  CatLandmarkModelRunner? _lm;
-  EnsembleLandmarkModel? _ensemble;
+  FaceLocalizerModel? _localizer;
+  LandmarkModelRunnerBase? _lm;
+  EnsembleLandmarkModelBase? _ensemble;
 
   /// Detection mode controlling pipeline behavior.
   final CatDetectionMode mode;
@@ -109,18 +105,32 @@ class CatDetector {
     }
 
     if (needsFace) {
-      _localizer = CatFaceLocalizer();
+      _localizer = FaceLocalizerModel(
+        inputSize: 224,
+        modelPath:
+            'packages/cat_detection/assets/models/cat_face_localizer.tflite',
+      );
       await _localizer!.initialize(performanceConfig);
 
       if (landmarkModel == CatLandmarkModel.ensemble) {
-        _ensemble = EnsembleLandmarkModel(poolSize: interpreterPoolSize);
+        _ensemble = EnsembleLandmarkModelBase(
+          numLandmarks: numCatLandmarks,
+          flipIndex: catLandmarkFlipIndex,
+          bundledModelPath:
+              'packages/cat_detection/assets/models/cat_face_landmarks_full.tflite',
+          getEnsembleModels: CatModelDownloader.getEnsembleModels,
+          poolSize: interpreterPoolSize,
+        );
         await _ensemble!.initialize(
           performanceConfig,
           onDownloadProgress: onDownloadProgress,
         );
       } else {
-        _lm = CatLandmarkModelRunner(
-          model: landmarkModel,
+        _lm = LandmarkModelRunnerBase(
+          inputSize: 256,
+          numLandmarks: numCatLandmarks,
+          modelPath:
+              'packages/cat_detection/assets/models/cat_face_landmarks_full.tflite',
           poolSize: interpreterPoolSize,
         );
         await _lm!.initialize(performanceConfig);
@@ -201,7 +211,11 @@ class CatDetector {
         );
       }
 
-      _localizer = CatFaceLocalizer();
+      _localizer = FaceLocalizerModel(
+        inputSize: 224,
+        modelPath:
+            'packages/cat_detection/assets/models/cat_face_localizer.tflite',
+      );
       await _localizer!.initializeFromBuffer(localizerBytes, performanceConfig);
 
       if (landmarkModel == CatLandmarkModel.ensemble) {
@@ -210,7 +224,14 @@ class CatDetector {
             'ensemble256Bytes and ensemble320Bytes are required for ensemble mode',
           );
         }
-        _ensemble = EnsembleLandmarkModel(poolSize: interpreterPoolSize);
+        _ensemble = EnsembleLandmarkModelBase(
+          numLandmarks: numCatLandmarks,
+          flipIndex: catLandmarkFlipIndex,
+          bundledModelPath:
+              'packages/cat_detection/assets/models/cat_face_landmarks_full.tflite',
+          getEnsembleModels: CatModelDownloader.getEnsembleModels,
+          poolSize: interpreterPoolSize,
+        );
         await _ensemble!.initializeFromBuffers(
           bytes256: ensemble256Bytes,
           bytes320: ensemble320Bytes,
@@ -218,8 +239,11 @@ class CatDetector {
           performanceConfig: performanceConfig,
         );
       } else {
-        _lm = CatLandmarkModelRunner(
-          model: landmarkModel,
+        _lm = LandmarkModelRunnerBase(
+          inputSize: 256,
+          numLandmarks: numCatLandmarks,
+          modelPath:
+              'packages/cat_detection/assets/models/cat_face_landmarks_full.tflite',
           poolSize: interpreterPoolSize,
         );
         await _lm!.initializeFromBuffer(landmarkBytes, performanceConfig);
@@ -312,7 +336,7 @@ class CatDetector {
       CatFace? face;
 
       if (mode == CatDetectionMode.full) {
-        final (cx1, cy1, cx2, cy2) = _expandBox(
+        final (cx1, cy1, cx2, cy2) = ImageUtils.expandBox(
           animal.boundingBox.left,
           animal.boundingBox.top,
           animal.boundingBox.right,
@@ -376,7 +400,7 @@ class CatDetector {
   ) async {
     final int cropSize = landmarkModel == CatLandmarkModel.ensemble
         ? _ensemble!.inputSize
-        : CatLandmarkModelRunner.inputSize;
+        : _lm!.inputSize;
 
     final (faceCrop, meta) = ImageUtils.cropAndResize(
       image,
@@ -388,35 +412,28 @@ class CatDetector {
     final List<CatLandmark> landmarks;
     try {
       if (landmarkModel == CatLandmarkModel.ensemble) {
-        landmarks =
-            await _ensemble!.predict(faceCrop, meta, imageWidth, imageHeight);
+        final coords = await _ensemble!.predictRaw(faceCrop, meta);
+        landmarks = [
+          for (int i = 0; i < coords.length; i++)
+            CatLandmark(
+                type: CatLandmarkType.values[i],
+                x: coords[i].$1,
+                y: coords[i].$2),
+        ];
       } else {
-        landmarks = await _lm!.predict(faceCrop, meta, imageWidth, imageHeight);
+        final coords = await _lm!.predictRaw(faceCrop, meta);
+        landmarks = [
+          for (int i = 0; i < coords.length; i++)
+            CatLandmark(
+                type: CatLandmarkType.values[i],
+                x: coords[i].$1,
+                y: coords[i].$2),
+        ];
       }
     } finally {
       faceCrop.dispose();
     }
 
     return CatFace(boundingBox: faceBbox, landmarks: landmarks);
-  }
-
-  /// Expands a bounding box by [margin] fraction on each side, clamped to image bounds.
-  static (int, int, int, int) _expandBox(
-    double x1,
-    double y1,
-    double x2,
-    double y2,
-    double margin,
-    int imgW,
-    int imgH,
-  ) {
-    final bw = x2 - x1;
-    final bh = y2 - y1;
-    return (
-      (x1 - bw * margin).clamp(0, imgW).toInt(),
-      (y1 - bh * margin).clamp(0, imgH).toInt(),
-      (x2 + bw * margin).clamp(0, imgW).toInt(),
-      (y2 + bh * margin).clamp(0, imgH).toInt(),
-    );
   }
 }

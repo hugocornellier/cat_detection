@@ -120,6 +120,7 @@ class _StillImageScreenState extends State<StillImageScreen> {
 
   bool _useEnsemble = false;
   CatDetectionMode _detectionMode = CatDetectionMode.full;
+  AnimalPoseModel _poseModel = AnimalPoseModel.rtmpose;
   bool _isInitialized = false;
   bool _isProcessing = false;
   bool _isDownloading = false;
@@ -156,8 +157,19 @@ class _StillImageScreenState extends State<StillImageScreen> {
         }
       }
 
+      if (_poseModel == AnimalPoseModel.hrnet) {
+        final cached = await CatDetector.isHrnetCached();
+        if (!cached) {
+          setState(() {
+            _isDownloading = true;
+            _downloadStatus = 'Downloading HRNet model...';
+          });
+        }
+      }
+
       _detector = await CatDetectorIsolate.spawn(
         mode: _detectionMode,
+        poseModel: _poseModel,
         landmarkModel:
             _useEnsemble ? CatLandmarkModel.ensemble : CatLandmarkModel.full,
         performanceConfig: PerformanceConfig.disabled,
@@ -166,7 +178,14 @@ class _StillImageScreenState extends State<StillImageScreen> {
           final mb = (received / 1024 / 1024).toStringAsFixed(1);
           final totalMb =
               total > 0 ? (total / 1024 / 1024).toStringAsFixed(1) : '?';
-          final name = model.contains('256') ? '256px' : '320px';
+          final String name;
+          if (model.contains('hrnet')) {
+            name = 'HRNet';
+          } else if (model.contains('256')) {
+            name = '256px';
+          } else {
+            name = '320px';
+          }
           setState(() {
             _downloadStatus = 'Downloading $name model: $mb / $totalMb MB';
           });
@@ -195,6 +214,18 @@ class _StillImageScreenState extends State<StillImageScreen> {
     if (value == _useEnsemble) return;
     setState(() {
       _useEnsemble = value;
+      _results = [];
+    });
+    await _initializeDetector();
+    if (_imageBytes != null && _isInitialized) {
+      await _runDetection(_imageBytes!);
+    }
+  }
+
+  Future<void> _changePoseModel(AnimalPoseModel model) async {
+    if (model == _poseModel) return;
+    setState(() {
+      _poseModel = model;
       _results = [];
     });
     await _initializeDetector();
@@ -620,6 +651,39 @@ class _StillImageScreenState extends State<StillImageScreen> {
                       ?.copyWith(color: Colors.grey[600]),
                 ),
               ),
+              const Divider(),
+              Text(
+                'Pose Model',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              RadioGroup<AnimalPoseModel>(
+                groupValue: _poseModel,
+                onChanged: _isDownloading
+                    ? (_) {}
+                    : (value) {
+                        if (value == null) return;
+                        setSheetState(() {});
+                        Navigator.pop(context);
+                        _changePoseModel(value);
+                      },
+                child: Column(
+                  children: [
+                    RadioListTile<AnimalPoseModel>(
+                      title: const Text('RTMPose-S'),
+                      subtitle:
+                          const Text('11.6 MB, bundled. Fast SimCC decoder.'),
+                      value: AnimalPoseModel.rtmpose,
+                    ),
+                    RadioListTile<AnimalPoseModel>(
+                      title: const Text('HRNet-w32'),
+                      subtitle: const Text(
+                          '54.6 MB, downloaded on demand. Most accurate.'),
+                      value: AnimalPoseModel.hrnet,
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 24),
             ],
           ),
@@ -749,8 +813,10 @@ class _StillImageScreenState extends State<StillImageScreen> {
       return Colors.blue;
     } else if (name.startsWith('leftEye') || name.startsWith('rightEye')) {
       return Colors.green;
-    } else if (name.startsWith('nose') || name.startsWith('noseRing') ||
-        name.startsWith('noseBridge') || name.startsWith('noseTip') ||
+    } else if (name.startsWith('nose') ||
+        name.startsWith('noseRing') ||
+        name.startsWith('noseBridge') ||
+        name.startsWith('noseTip') ||
         name.startsWith('noseWing')) {
       return Colors.orange;
     } else {
@@ -993,8 +1059,10 @@ class CatOverlayPainter extends CustomPainter {
       return Colors.blue;
     } else if (name.startsWith('leftEye') || name.startsWith('rightEye')) {
       return Colors.green;
-    } else if (name.startsWith('nose') || name.startsWith('noseRing') ||
-        name.startsWith('noseBridge') || name.startsWith('noseTip') ||
+    } else if (name.startsWith('nose') ||
+        name.startsWith('noseRing') ||
+        name.startsWith('noseBridge') ||
+        name.startsWith('noseTip') ||
         name.startsWith('noseWing')) {
       return Colors.orange;
     } else {

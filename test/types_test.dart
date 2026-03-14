@@ -309,12 +309,54 @@ void main() {
 
     test('matches expected flip index exactly', () {
       const expectedFlipIndex = [
-        0, 3, 2, 1, 8, 9, 10, 11,
-        4, 5, 6, 7, 13, 12, 15, 14,
-        16, 17, 20, 21, 18, 19, 31, 30,
-        29, 28, 27, 26, 25, 24, 23, 22,
-        35, 34, 33, 32, 41, 40, 39, 38,
-        37, 36, 43, 42, 45, 44, 47, 46,
+        0,
+        3,
+        2,
+        1,
+        8,
+        9,
+        10,
+        11,
+        4,
+        5,
+        6,
+        7,
+        13,
+        12,
+        15,
+        14,
+        16,
+        17,
+        20,
+        21,
+        18,
+        19,
+        31,
+        30,
+        29,
+        28,
+        27,
+        26,
+        25,
+        24,
+        23,
+        22,
+        35,
+        34,
+        33,
+        32,
+        41,
+        40,
+        39,
+        38,
+        37,
+        36,
+        43,
+        42,
+        45,
+        44,
+        47,
+        46,
       ];
       expect(catLandmarkFlipIndex, expectedFlipIndex);
     });
@@ -768,7 +810,8 @@ void main() {
 
     test('toMap/fromMap round-trip with all 48 landmarks', () {
       final allLandmarks = CatLandmarkType.values
-          .map((type) => CatLandmark(type: type, x: type.index * 2.0, y: type.index * 3.0))
+          .map((type) =>
+              CatLandmark(type: type, x: type.index * 2.0, y: type.index * 3.0))
           .toList();
       final original = CatFace(
         boundingBox: BoundingBox.ltrb(0, 0, 400, 300),
@@ -872,8 +915,7 @@ void main() {
       return CatFace(
         boundingBox: BoundingBox.ltrb(50.0, 60.0, 150.0, 160.0),
         landmarks: [
-          CatLandmark(
-              type: CatLandmarkType.noseBridgeLeft, x: 100.0, y: 110.0),
+          CatLandmark(type: CatLandmarkType.noseBridgeLeft, x: 100.0, y: 110.0),
           CatLandmark(type: CatLandmarkType.leftEyeOuter, x: 80.0, y: 90.0),
         ],
       );
@@ -1326,7 +1368,12 @@ void main() {
 
     test('fromMap with integer speciesConfidence', () {
       final map = {
-        'boundingBox': {'left': 0.0, 'top': 0.0, 'right': 100.0, 'bottom': 100.0},
+        'boundingBox': {
+          'left': 0.0,
+          'top': 0.0,
+          'right': 100.0,
+          'bottom': 100.0
+        },
         'score': 0.8,
         'species': 'cat',
         'breed': null,
@@ -1399,8 +1446,8 @@ void main() {
         CatLandmarkType.leftEar4,
       };
       final leftEarConnections = catLandmarkConnections
-          .where((c) =>
-              leftEarTypes.contains(c[0]) && leftEarTypes.contains(c[1]))
+          .where(
+              (c) => leftEarTypes.contains(c[0]) && leftEarTypes.contains(c[1]))
           .toList();
       expect(leftEarConnections.length, 4);
     });
@@ -1427,8 +1474,8 @@ void main() {
         CatLandmarkType.leftEyeBottom,
       };
       final leftEyeConnections = catLandmarkConnections
-          .where((c) =>
-              leftEyeTypes.contains(c[0]) && leftEyeTypes.contains(c[1]))
+          .where(
+              (c) => leftEyeTypes.contains(c[0]) && leftEyeTypes.contains(c[1]))
           .toList();
       expect(leftEyeConnections.length, 4);
     });
@@ -1449,8 +1496,8 @@ void main() {
         CatLandmarkType.noseRingRight0,
         CatLandmarkType.noseRingRight1,
       };
-      final noseRingConnections = catLandmarkConnections.where((c) =>
-          noseRingTypes.contains(c[0]) || noseRingTypes.contains(c[1]));
+      final noseRingConnections = catLandmarkConnections.where(
+          (c) => noseRingTypes.contains(c[0]) || noseRingTypes.contains(c[1]));
       expect(noseRingConnections.length, greaterThanOrEqualTo(3));
     });
 
@@ -1462,8 +1509,7 @@ void main() {
         CatLandmarkType.mouthCornerRight,
       };
       final mouthConnections = catLandmarkConnections
-          .where((c) =>
-              mouthTypes.contains(c[0]) && mouthTypes.contains(c[1]))
+          .where((c) => mouthTypes.contains(c[0]) && mouthTypes.contains(c[1]))
           .toList();
       expect(mouthConnections.length, greaterThanOrEqualTo(4));
     });
