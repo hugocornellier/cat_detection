@@ -11,7 +11,7 @@
 
 ![Demo](assets/screenshots/cat_detection_demo.png)
 
-On-device cat detection using TFLite models. Detects cats in images with breed identification, body pose estimation, face localization, and 48-point facial landmarks — all running locally with no remote API.
+On-device cat detection using TFLite models. Detects cats in images with breed identification, body pose estimation, face localization, and 48-point facial landmarks.
 
 ## Features
 
@@ -20,7 +20,6 @@ On-device cat detection using TFLite models. Detects cats in images with breed i
 - Body pose estimation via SuperAnimal keypoints
 - Face localization and 48-point facial landmark extraction (CatFLW)
 - Truly cross-platform: compatible with Android, iOS, macOS, Windows, and Linux
-- Background isolate support via `CatDetectorIsolate` for guaranteed non-blocking UI
 - Configurable performance with XNNPACK, GPU, and CoreML acceleration
 
 ## Quick Start
