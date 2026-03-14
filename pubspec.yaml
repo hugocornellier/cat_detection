@@ -1,6 +1,7 @@
 name: cat_detection
 description: "Cat face and landmark detection using on-device TFLite models."
 version: 0.0.1
+repository: https://github.com/hugocornellier/cat_detection
 
 environment:
   sdk: ">=3.6.0 <4.0.0"
@@ -27,7 +28,6 @@ flutter:
   assets:
     - assets/models/cat_face_localizer.tflite
     - assets/models/cat_face_landmarks_full.tflite
-    - assets/samples/
 
   plugin:
     platforms:
