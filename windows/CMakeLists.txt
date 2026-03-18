@@ -9,6 +9,7 @@ add_library(${PLUGIN_NAME} SHARED
   "cat_detection_plugin.cpp"
   "cat_detection_plugin.h"
   "cat_detection_plugin_c_api.cpp"
+  "include/cat_detection/cat_detection_plugin.h"
   "include/cat_detection/cat_detection_plugin_c_api.h"
 )
 

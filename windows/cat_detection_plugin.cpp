@@ -1,4 +1,5 @@
 #include "cat_detection_plugin.h"
+#include "include/cat_detection/cat_detection_plugin.h"
 #include "include/cat_detection/cat_detection_plugin_c_api.h"
 
 #include <windows.h>

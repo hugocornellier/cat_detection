@@ -1,3 +1,7 @@
+## 0.0.4
+
+* Fix Windows build: export CatDetectionPluginRegisterWithRegistrar symbol
+
 ## 0.0.3
 
 * Update animal_detection 0.0.3 -> 0.0.4
