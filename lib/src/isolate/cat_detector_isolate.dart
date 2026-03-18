@@ -19,6 +19,7 @@ class _IsolateStartupData {
   final SendPort sendPort;
 
   // Face pipeline (full)
+  final TransferableTypedData? localizerBytes;
   final TransferableTypedData? landmarkBytes;
   final TransferableTypedData? ensemble256Bytes;
   final TransferableTypedData? ensemble320Bytes;
@@ -39,6 +40,7 @@ class _IsolateStartupData {
 
   _IsolateStartupData({
     required this.sendPort,
+    this.localizerBytes,
     this.landmarkBytes,
     this.ensemble256Bytes,
     this.ensemble320Bytes,
@@ -167,17 +169,27 @@ class CatDetectorIsolate {
 
     try {
       // Face pipeline assets
+      TransferableTypedData? localizerTtd;
       TransferableTypedData? landmarkTtd;
       TransferableTypedData? ensemble256;
       TransferableTypedData? ensemble320;
 
       if (needsFace) {
+        const localizerPath =
+            'packages/cat_detection/assets/models/cat_face_localizer.tflite';
         const landmarkPath =
             'packages/cat_detection/assets/models/cat_face_landmarks_full.tflite';
 
-        final landmarkData = await rootBundle.load(landmarkPath);
+        final results = await Future.wait([
+          rootBundle.load(localizerPath),
+          rootBundle.load(landmarkPath),
+        ]);
+
+        localizerTtd = TransferableTypedData.fromList(
+          [results[0].buffer.asUint8List()],
+        );
         landmarkTtd = TransferableTypedData.fromList(
-          [landmarkData.buffer.asUint8List()],
+          [results[1].buffer.asUint8List()],
         );
 
         if (landmarkModel == CatLandmarkModel.ensemble) {
@@ -235,6 +247,7 @@ class CatDetectorIsolate {
         _isolateEntry,
         _IsolateStartupData(
           sendPort: _receivePort.sendPort,
+          localizerBytes: localizerTtd,
           landmarkBytes: landmarkTtd,
           ensemble256Bytes: ensemble256,
           ensemble320Bytes: ensemble320,
@@ -447,6 +460,7 @@ class CatDetectorIsolate {
     CatDetector? detector;
 
     try {
+      final localizerBytes = data.localizerBytes?.materialize().asUint8List();
       final landmarkBytes = data.landmarkBytes?.materialize().asUint8List();
       final ensemble256Bytes =
           data.ensemble256Bytes?.materialize().asUint8List();
@@ -484,6 +498,7 @@ class CatDetectorIsolate {
       );
 
       await detector.initializeFromBuffers(
+        localizerBytes: localizerBytes,
         landmarkBytes: landmarkBytes,
         ensemble256Bytes: ensemble256Bytes,
         ensemble320Bytes: ensemble320Bytes,

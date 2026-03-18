@@ -2,11 +2,7 @@ import 'dart:typed_data';
 import 'package:opencv_dart/opencv_dart.dart' as cv;
 import 'package:animal_detection/animal_detection.dart';
 import 'types.dart';
-import 'util/image_utils.dart';
 import 'util/model_downloader.dart';
-import 'models/cat_face_localizer.dart';
-import 'models/cat_landmark_model.dart';
-import 'models/ensemble_landmark_model.dart';
 
 /// On-device cat detection using a unified multi-stage TensorFlow Lite pipeline.
 ///
@@ -31,9 +27,9 @@ class CatDetector {
   AnimalDetector? _animalDetector;
 
   // Face pipeline (full)
-  CatFaceLocalizer? _localizer;
-  CatLandmarkModelRunner? _lm;
-  EnsembleLandmarkModel? _ensemble;
+  FaceLocalizerModel? _localizer;
+  LandmarkModelRunnerBase? _lm;
+  EnsembleLandmarkModelBase? _ensemble;
 
   /// Detection mode controlling pipeline behavior.
   final CatDetectionMode mode;
@@ -109,15 +105,32 @@ class CatDetector {
     }
 
     if (needsFace) {
+      _localizer = FaceLocalizerModel(
+        inputSize: 224,
+        modelPath:
+            'packages/cat_detection/assets/models/cat_face_localizer.tflite',
+      );
+      await _localizer!.initialize(performanceConfig);
+
       if (landmarkModel == CatLandmarkModel.ensemble) {
-        _ensemble = EnsembleLandmarkModel(poolSize: interpreterPoolSize);
+        _ensemble = EnsembleLandmarkModelBase(
+          numLandmarks: numCatLandmarks,
+          flipIndex: catLandmarkFlipIndex,
+          bundledModelPath:
+              'packages/cat_detection/assets/models/cat_face_landmarks_full.tflite',
+          getEnsembleModels: CatModelDownloader.getEnsembleModels,
+          poolSize: interpreterPoolSize,
+        );
         await _ensemble!.initialize(
           performanceConfig,
           onDownloadProgress: onDownloadProgress,
         );
       } else {
-        _lm = CatLandmarkModelRunner(
-          model: landmarkModel,
+        _lm = LandmarkModelRunnerBase(
+          inputSize: 256,
+          numLandmarks: numCatLandmarks,
+          modelPath:
+              'packages/cat_detection/assets/models/cat_face_landmarks_full.tflite',
           poolSize: interpreterPoolSize,
         );
         await _lm!.initialize(performanceConfig);
@@ -187,11 +200,23 @@ class CatDetector {
     }
 
     if (needsFace) {
+      if (localizerBytes == null) {
+        throw ArgumentError(
+          'localizerBytes is required for full mode',
+        );
+      }
       if (landmarkBytes == null) {
         throw ArgumentError(
           'landmarkBytes is required for full mode',
         );
       }
+
+      _localizer = FaceLocalizerModel(
+        inputSize: 224,
+        modelPath:
+            'packages/cat_detection/assets/models/cat_face_localizer.tflite',
+      );
+      await _localizer!.initializeFromBuffer(localizerBytes, performanceConfig);
 
       if (landmarkModel == CatLandmarkModel.ensemble) {
         if (ensemble256Bytes == null || ensemble320Bytes == null) {
@@ -199,7 +224,14 @@ class CatDetector {
             'ensemble256Bytes and ensemble320Bytes are required for ensemble mode',
           );
         }
-        _ensemble = EnsembleLandmarkModel(poolSize: interpreterPoolSize);
+        _ensemble = EnsembleLandmarkModelBase(
+          numLandmarks: numCatLandmarks,
+          flipIndex: catLandmarkFlipIndex,
+          bundledModelPath:
+              'packages/cat_detection/assets/models/cat_face_landmarks_full.tflite',
+          getEnsembleModels: CatModelDownloader.getEnsembleModels,
+          poolSize: interpreterPoolSize,
+        );
         await _ensemble!.initializeFromBuffers(
           bytes256: ensemble256Bytes,
           bytes320: ensemble320Bytes,
@@ -207,8 +239,11 @@ class CatDetector {
           performanceConfig: performanceConfig,
         );
       } else {
-        _lm = CatLandmarkModelRunner(
-          model: landmarkModel,
+        _lm = LandmarkModelRunnerBase(
+          inputSize: 256,
+          numLandmarks: numCatLandmarks,
+          modelPath:
+              'packages/cat_detection/assets/models/cat_face_landmarks_full.tflite',
           poolSize: interpreterPoolSize,
         );
         await _lm!.initializeFromBuffer(landmarkBytes, performanceConfig);
@@ -301,15 +336,43 @@ class CatDetector {
       CatFace? face;
 
       if (mode == CatDetectionMode.full) {
-        // Use body bbox directly as face region (no face localizer yet)
-        final faceBbox = animal.boundingBox;
-
-        face = await _runFaceLandmarks(
-          image,
-          faceBbox,
+        final (cx1, cy1, cx2, cy2) = ImageUtils.expandBox(
+          animal.boundingBox.left,
+          animal.boundingBox.top,
+          animal.boundingBox.right,
+          animal.boundingBox.bottom,
+          cropMargin,
           imageWidth,
           imageHeight,
         );
+
+        final int cropW = cx2 - cx1;
+        final int cropH = cy2 - cy1;
+        if (cropW >= 1 && cropH >= 1) {
+          final expandedCrop = image.region(cv.Rect(cx1, cy1, cropW, cropH));
+          try {
+            final BoundingBox? faceBboxInCrop =
+                await _localizer!.detect(expandedCrop);
+
+            if (faceBboxInCrop != null) {
+              final faceBboxInImage = BoundingBox.ltrb(
+                faceBboxInCrop.left + cx1,
+                faceBboxInCrop.top + cy1,
+                faceBboxInCrop.right + cx1,
+                faceBboxInCrop.bottom + cy1,
+              );
+
+              face = await _runFaceLandmarks(
+                image,
+                faceBboxInImage,
+                imageWidth,
+                imageHeight,
+              );
+            }
+          } finally {
+            expandedCrop.dispose();
+          }
+        }
       }
 
       cats.add(Cat(
@@ -337,7 +400,7 @@ class CatDetector {
   ) async {
     final int cropSize = landmarkModel == CatLandmarkModel.ensemble
         ? _ensemble!.inputSize
-        : CatLandmarkModelRunner.inputSize;
+        : _lm!.inputSize;
 
     final (faceCrop, meta) = ImageUtils.cropAndResize(
       image,
@@ -349,10 +412,23 @@ class CatDetector {
     final List<CatLandmark> landmarks;
     try {
       if (landmarkModel == CatLandmarkModel.ensemble) {
-        landmarks =
-            await _ensemble!.predict(faceCrop, meta, imageWidth, imageHeight);
+        final coords = await _ensemble!.predictRaw(faceCrop, meta);
+        landmarks = [
+          for (int i = 0; i < coords.length; i++)
+            CatLandmark(
+                type: CatLandmarkType.values[i],
+                x: coords[i].$1,
+                y: coords[i].$2),
+        ];
       } else {
-        landmarks = await _lm!.predict(faceCrop, meta, imageWidth, imageHeight);
+        final coords = await _lm!.predictRaw(faceCrop, meta);
+        landmarks = [
+          for (int i = 0; i < coords.length; i++)
+            CatLandmark(
+                type: CatLandmarkType.values[i],
+                x: coords[i].$1,
+                y: coords[i].$2),
+        ];
       }
     } finally {
       faceCrop.dispose();
@@ -360,5 +436,4 @@ class CatDetector {
 
     return CatFace(boundingBox: faceBbox, landmarks: landmarks);
   }
-
 }
