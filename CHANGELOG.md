@@ -1,3 +1,7 @@
+## 0.0.5
+
+* Fix Windows build: rename private header include guard to avoid collision with public header
+
 ## 0.0.4
 
 * Fix Windows build: export CatDetectionPluginRegisterWithRegistrar symbol

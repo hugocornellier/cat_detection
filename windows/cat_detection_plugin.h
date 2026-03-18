@@ -1,5 +1,5 @@
-#ifndef FLUTTER_PLUGIN_CAT_DETECTION_PLUGIN_H_
-#define FLUTTER_PLUGIN_CAT_DETECTION_PLUGIN_H_
+#ifndef FLUTTER_PLUGIN_CAT_DETECTION_PLUGIN_PRIVATE_H_
+#define FLUTTER_PLUGIN_CAT_DETECTION_PLUGIN_PRIVATE_H_
 
 #include <flutter/method_channel.h>
 #include <flutter/plugin_registrar_windows.h>
@@ -26,4 +26,4 @@ class CatDetectionPlugin : public flutter::Plugin {
 
 }  // namespace cat_detection
 
-#endif  // FLUTTER_PLUGIN_CAT_DETECTION_PLUGIN_H_
+#endif  // FLUTTER_PLUGIN_CAT_DETECTION_PLUGIN_PRIVATE_H_
