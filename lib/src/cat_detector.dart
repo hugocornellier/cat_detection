@@ -82,6 +82,7 @@ class CatDetector {
   /// (modelName, bytesReceived, totalBytes).
   Future<void> initialize({
     void Function(String model, int received, int total)? onDownloadProgress,
+    bool useIsolateInterpreter = true,
   }) async {
     if (_isInitialized) {
       await dispose();
@@ -101,6 +102,7 @@ class CatDetector {
       );
       await _animalDetector!.initialize(
         onDownloadProgress: onDownloadProgress,
+        useIsolateInterpreter: useIsolateInterpreter,
       );
     }
 
@@ -110,7 +112,10 @@ class CatDetector {
         modelPath:
             'packages/cat_detection/assets/models/cat_face_localizer.tflite',
       );
-      await _localizer!.initialize(performanceConfig);
+      await _localizer!.initialize(
+        performanceConfig,
+        useIsolateInterpreter: useIsolateInterpreter,
+      );
 
       if (landmarkModel == CatLandmarkModel.ensemble) {
         _ensemble = EnsembleLandmarkModelBase(
@@ -124,6 +129,7 @@ class CatDetector {
         await _ensemble!.initialize(
           performanceConfig,
           onDownloadProgress: onDownloadProgress,
+          useIsolateInterpreter: useIsolateInterpreter,
         );
       } else {
         _lm = LandmarkModelRunnerBase(
@@ -133,7 +139,10 @@ class CatDetector {
               'packages/cat_detection/assets/models/cat_face_landmarks_full.tflite',
           poolSize: interpreterPoolSize,
         );
-        await _lm!.initialize(performanceConfig);
+        await _lm!.initialize(
+          performanceConfig,
+          useIsolateInterpreter: useIsolateInterpreter,
+        );
       }
     }
 
@@ -153,6 +162,7 @@ class CatDetector {
     Uint8List? classifierBytes,
     String? speciesMappingJson,
     Uint8List? poseModelBytes,
+    bool useIsolateInterpreter = true,
   }) async {
     if (_isInitialized) {
       await dispose();
@@ -196,6 +206,7 @@ class CatDetector {
         classifierBytes: classifierBytes,
         speciesMappingJson: speciesMappingJson,
         poseModelBytes: poseModelBytes,
+        useIsolateInterpreter: useIsolateInterpreter,
       );
     }
 
@@ -216,7 +227,11 @@ class CatDetector {
         modelPath:
             'packages/cat_detection/assets/models/cat_face_localizer.tflite',
       );
-      await _localizer!.initializeFromBuffer(localizerBytes, performanceConfig);
+      await _localizer!.initializeFromBuffer(
+        localizerBytes,
+        performanceConfig,
+        useIsolateInterpreter: useIsolateInterpreter,
+      );
 
       if (landmarkModel == CatLandmarkModel.ensemble) {
         if (ensemble256Bytes == null || ensemble320Bytes == null) {
@@ -237,6 +252,7 @@ class CatDetector {
           bytes320: ensemble320Bytes,
           bytes384: landmarkBytes,
           performanceConfig: performanceConfig,
+          useIsolateInterpreter: useIsolateInterpreter,
         );
       } else {
         _lm = LandmarkModelRunnerBase(
@@ -246,7 +262,11 @@ class CatDetector {
               'packages/cat_detection/assets/models/cat_face_landmarks_full.tflite',
           poolSize: interpreterPoolSize,
         );
-        await _lm!.initializeFromBuffer(landmarkBytes, performanceConfig);
+        await _lm!.initializeFromBuffer(
+          landmarkBytes,
+          performanceConfig,
+          useIsolateInterpreter: useIsolateInterpreter,
+        );
       }
     }
 

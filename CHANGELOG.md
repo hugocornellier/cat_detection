@@ -1,3 +1,7 @@
+## 0.0.7
+
+* Fix Android hang on sequential detect calls
+
 ## 0.0.6
 
 * Fix isolate hanging on sequential detect calls

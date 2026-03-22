@@ -486,7 +486,7 @@ class CatDetectorIsolate {
   ///
   /// Sends its [SendPort] back to the main isolate on success, or an error map on failure.
   @pragma('vm:entry-point')
-  static Future<void> _isolateEntry(_IsolateStartupData data) async {
+  static void _isolateEntry(_IsolateStartupData data) async {
     final SendPort mainSendPort = data.sendPort;
     final ReceivePort workerReceivePort = ReceivePort();
 
@@ -539,6 +539,7 @@ class CatDetectorIsolate {
         classifierBytes: classifierBytes,
         speciesMappingJson: data.speciesMappingJson,
         poseModelBytes: poseModelBytes,
+        useIsolateInterpreter: false,
       );
 
       mainSendPort.send(workerReceivePort.sendPort);
@@ -549,41 +550,41 @@ class CatDetectorIsolate {
       return;
     }
 
-    await for (final message in workerReceivePort) {
-      if (message is! Map) continue;
+    workerReceivePort.listen((message) async {
+      if (message is! Map) return;
 
       final int? id = message['id'] as int?;
       final String? op = message['op'] as String?;
 
-      if (id == null || op == null) continue;
+      if (id == null || op == null) return;
 
       try {
         switch (op) {
           case 'detect':
-            if (detector == null || !detector.isInitialized) {
+            if (detector == null || !detector!.isInitialized) {
               mainSendPort.send({
                 'id': id,
                 'error': 'CatDetector not initialized in isolate',
               });
-              continue;
+              return;
             }
 
             final ByteBuffer bb =
                 (message['bytes'] as TransferableTypedData).materialize();
             final Uint8List imageBytes = bb.asUint8List();
 
-            final cats = await detector.detect(imageBytes);
+            final cats = await detector!.detect(imageBytes);
             final serialized = cats.map((c) => c.toMap()).toList();
 
             mainSendPort.send({'id': id, 'result': serialized});
 
           case 'detectMat':
-            if (detector == null || !detector.isInitialized) {
+            if (detector == null || !detector!.isInitialized) {
               mainSendPort.send({
                 'id': id,
                 'error': 'CatDetector not initialized in isolate',
               });
-              continue;
+              return;
             }
 
             final ByteBuffer bb =
@@ -597,7 +598,7 @@ class CatDetectorIsolate {
             final mat = cv.Mat.fromList(height, width, matType, matBytes);
 
             try {
-              final cats = await detector.detectFromMat(
+              final cats = await detector!.detectFromMat(
                 mat,
                 imageWidth: width,
                 imageHeight: height,
@@ -616,6 +617,6 @@ class CatDetectorIsolate {
       } catch (e, st) {
         mainSendPort.send({'id': id, 'error': '$e\n$st'});
       }
-    }
+    });
   }
 }
