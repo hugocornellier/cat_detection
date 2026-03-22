@@ -1,3 +1,7 @@
+## 0.0.6
+
+* Fix isolate hanging on sequential detect calls
+
 ## 0.0.5
 
 * Fix Windows build: rename private header include guard to avoid collision with public header

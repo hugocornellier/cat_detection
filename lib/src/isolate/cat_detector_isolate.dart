@@ -98,6 +98,7 @@ class CatDetectorIsolate {
   int _nextId = 0;
 
   bool _initialized = false;
+  StreamSubscription<dynamic>? _subscription;
 
   /// Returns true if the isolate is initialized and ready for detection.
   bool get isReady => _initialized;
@@ -282,36 +283,56 @@ class CatDetectorIsolate {
     }
   }
 
+  void _failAllPending(String reason) {
+    for (final completer in _pending.values) {
+      if (!completer.isCompleted) {
+        completer.completeError(StateError(reason));
+      }
+    }
+    _pending.clear();
+    _initialized = false;
+  }
+
   /// Sets up init handshake and message routing for the isolate.
-  static Future<SendPort> _setupIsolateListener({
+  Future<SendPort> _setupIsolateListener({
     required ReceivePort receivePort,
     required void Function(dynamic) responseHandler,
     required Duration timeout,
     required String timeoutMsg,
   }) async {
     final Completer<SendPort> initCompleter = Completer<SendPort>();
-    late final StreamSubscription<dynamic> subscription;
 
-    subscription = receivePort.listen((message) {
-      if (!initCompleter.isCompleted) {
-        if (message is SendPort) {
-          initCompleter.complete(message);
-        } else if (message is Map && message['error'] != null) {
-          initCompleter.completeError(StateError(message['error'] as String));
-        } else {
+    _subscription = receivePort.listen(
+      (message) {
+        if (!initCompleter.isCompleted) {
+          if (message is SendPort) {
+            initCompleter.complete(message);
+          } else if (message is Map && message['error'] != null) {
+            initCompleter.completeError(StateError(message['error'] as String));
+          } else {
+            initCompleter.completeError(
+              StateError('Expected SendPort, got ${message.runtimeType}'),
+            );
+          }
+          return;
+        }
+        responseHandler(message);
+      },
+      onDone: () {
+        if (!initCompleter.isCompleted) {
           initCompleter.completeError(
-            StateError('Expected SendPort, got ${message.runtimeType}'),
+            StateError(
+                'Worker isolate terminated before initialization completed'),
           );
         }
-        return;
-      }
-      responseHandler(message);
-    });
+        _failAllPending('Worker isolate terminated unexpectedly');
+      },
+    );
 
     return initCompleter.future.timeout(
       timeout,
       onTimeout: () {
-        subscription.cancel();
+        _subscription?.cancel();
         throw TimeoutException(timeoutMsg);
       },
     );
@@ -357,7 +378,16 @@ class CatDetectorIsolate {
 
     try {
       _sendPort!.send({'id': id, 'op': operation, ...params});
-      return await completer.future;
+      return await completer.future.timeout(
+        const Duration(seconds: 120),
+        onTimeout: () {
+          _pending.remove(id);
+          throw TimeoutException(
+            '$operation request $id timed out',
+            const Duration(seconds: 120),
+          );
+        },
+      );
     } catch (e) {
       _pending.remove(id);
       rethrow;
@@ -428,6 +458,9 @@ class CatDetectorIsolate {
   /// After calling dispose, the instance cannot be reused. Create a new
   /// instance with [spawn] if needed.
   Future<void> dispose() async {
+    _subscription?.cancel();
+    _subscription = null;
+
     for (final completer in _pending.values) {
       if (!completer.isCompleted) {
         completer.completeError(StateError('CatDetectorIsolate disposed'));
@@ -453,7 +486,7 @@ class CatDetectorIsolate {
   ///
   /// Sends its [SendPort] back to the main isolate on success, or an error map on failure.
   @pragma('vm:entry-point')
-  static void _isolateEntry(_IsolateStartupData data) async {
+  static Future<void> _isolateEntry(_IsolateStartupData data) async {
     final SendPort mainSendPort = data.sendPort;
     final ReceivePort workerReceivePort = ReceivePort();
 
@@ -516,41 +549,41 @@ class CatDetectorIsolate {
       return;
     }
 
-    workerReceivePort.listen((message) async {
-      if (message is! Map) return;
+    await for (final message in workerReceivePort) {
+      if (message is! Map) continue;
 
       final int? id = message['id'] as int?;
       final String? op = message['op'] as String?;
 
-      if (id == null || op == null) return;
+      if (id == null || op == null) continue;
 
       try {
         switch (op) {
           case 'detect':
-            if (detector == null || !detector!.isInitialized) {
+            if (detector == null || !detector.isInitialized) {
               mainSendPort.send({
                 'id': id,
                 'error': 'CatDetector not initialized in isolate',
               });
-              return;
+              continue;
             }
 
             final ByteBuffer bb =
                 (message['bytes'] as TransferableTypedData).materialize();
             final Uint8List imageBytes = bb.asUint8List();
 
-            final cats = await detector!.detect(imageBytes);
+            final cats = await detector.detect(imageBytes);
             final serialized = cats.map((c) => c.toMap()).toList();
 
             mainSendPort.send({'id': id, 'result': serialized});
 
           case 'detectMat':
-            if (detector == null || !detector!.isInitialized) {
+            if (detector == null || !detector.isInitialized) {
               mainSendPort.send({
                 'id': id,
                 'error': 'CatDetector not initialized in isolate',
               });
-              return;
+              continue;
             }
 
             final ByteBuffer bb =
@@ -564,7 +597,7 @@ class CatDetectorIsolate {
             final mat = cv.Mat.fromList(height, width, matType, matBytes);
 
             try {
-              final cats = await detector!.detectFromMat(
+              final cats = await detector.detectFromMat(
                 mat,
                 imageWidth: width,
                 imageHeight: height,
@@ -583,6 +616,6 @@ class CatDetectorIsolate {
       } catch (e, st) {
         mainSendPort.send({'id': id, 'error': '$e\n$st'});
       }
-    });
+    }
   }
 }

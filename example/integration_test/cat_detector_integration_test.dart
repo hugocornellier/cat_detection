@@ -865,6 +865,84 @@ void main() {
 
       await second.dispose();
     });
+
+    testWidgets('should handle two sequential detectCats calls on same isolate',
+        (tester) async {
+      final isolate = await CatDetectorIsolate.spawn(
+        mode: CatDetectionMode.full,
+      );
+      expect(isolate.isReady, true);
+
+      final ByteData data = await rootBundle
+          .load('packages/cat_detection/assets/samples/sample_cat_1.png');
+      final Uint8List bytes = data.buffer.asUint8List();
+
+      final List<Cat> first = await isolate.detectCats(bytes);
+      expect(first, isNotEmpty);
+
+      final List<Cat> second = await isolate.detectCats(bytes);
+      expect(second, isNotEmpty);
+
+      expect(first.length, second.length);
+
+      await isolate.dispose();
+    });
+
+    testWidgets(
+        'should handle three sequential detectCats calls on same isolate',
+        (tester) async {
+      final isolate = await CatDetectorIsolate.spawn(
+        mode: CatDetectionMode.full,
+      );
+      expect(isolate.isReady, true);
+
+      final ByteData data = await rootBundle
+          .load('packages/cat_detection/assets/samples/sample_cat_1.png');
+      final Uint8List bytes = data.buffer.asUint8List();
+
+      final List<Cat> first = await isolate.detectCats(bytes);
+      expect(first, isNotEmpty);
+
+      final List<Cat> second = await isolate.detectCats(bytes);
+      expect(second, isNotEmpty);
+
+      final List<Cat> third = await isolate.detectCats(bytes);
+      expect(third, isNotEmpty);
+
+      expect(first.length, second.length);
+      expect(second.length, third.length);
+
+      await isolate.dispose();
+    });
+
+    testWidgets(
+        'should handle two sequential detectCatsFromMat calls on same isolate',
+        (tester) async {
+      final isolate = await CatDetectorIsolate.spawn(
+        mode: CatDetectionMode.full,
+      );
+      expect(isolate.isReady, true);
+
+      final ByteData data = await rootBundle
+          .load('packages/cat_detection/assets/samples/sample_cat_1.png');
+      final Uint8List bytes = data.buffer.asUint8List();
+      final mat = cv.imdecode(bytes, cv.IMREAD_COLOR);
+      expect(mat.isEmpty, isFalse);
+
+      try {
+        final List<Cat> first = await isolate.detectCatsFromMat(mat);
+        expect(first, isNotEmpty);
+
+        final List<Cat> second = await isolate.detectCatsFromMat(mat);
+        expect(second, isNotEmpty);
+
+        expect(first.length, second.length);
+      } finally {
+        mat.dispose();
+      }
+
+      await isolate.dispose();
+    });
   });
 
   // ---------------------------------------------------------------------------
