@@ -1,3 +1,17 @@
+## 0.0.10
+
+* Update documentation
+
+## 0.0.9
+
+* Update flutter_litert 2.0.8 -> 2.0.10
+
+## 0.0.8
+
+* Enable auto hardware acceleration by default (XNNPACK on all native platforms, Metal GPU on iOS)
+* Update flutter_litert 2.0.6 -> 2.0.8
+* Update animal_detection 0.0.5 -> 0.0.6
+
 ## 0.0.7
 
 * Fix Android hang on sequential detect calls

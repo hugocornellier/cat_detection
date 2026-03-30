@@ -13,7 +13,7 @@
 
 On-device cat detection using TFLite models. Detects cats in images with breed identification, body pose estimation, face localization, and 48-point facial landmarks.
 
-## Features
+## Features 
 
 - Cat body detection with bounding box (SSD-based)
 - Breed identification with confidence score
@@ -180,11 +180,41 @@ await detector.dispose();
 
 ## Performance
 
-XNNPACK can be enabled for 2-5x CPU speedup via SIMD vectorization (NEON on ARM, AVX on x86):
+### Hardware Acceleration
+
+The package automatically selects the best acceleration strategy for each platform:
+
+| Platform | Default Delegate | Speedup | Notes |
+|----------|-----------------|---------|-------|
+| **macOS** | XNNPACK | 2-5x | SIMD vectorization (NEON on ARM, AVX on x86) |
+| **Linux** | XNNPACK | 2-5x | SIMD vectorization |
+| **iOS** | Metal GPU | 2-4x | Hardware GPU acceleration |
+| **Android** | XNNPACK | 2-5x | ARM NEON SIMD acceleration |
+| **Windows** | XNNPACK | 2-5x | SIMD vectorization (AVX on x86) |
+
+No configuration needed - just call `initialize()` and you get the optimal performance for your platform.
+
+### Advanced Performance Configuration
 
 ```dart
+// Auto mode (default) - optimal for each platform
+await detector.initialize();
+
+// Force XNNPACK (all native platforms)
 final detector = CatDetector(
-  performanceConfig: PerformanceConfig.xnnpack(),
+  performanceConfig: PerformanceConfig.xnnpack(numThreads: 4),
+);
+await detector.initialize();
+
+// Force GPU delegate (iOS recommended, Android experimental)
+final detector = CatDetector(
+  performanceConfig: PerformanceConfig.gpu(),
+);
+await detector.initialize();
+
+// CPU-only (maximum compatibility)
+final detector = CatDetector(
+  performanceConfig: PerformanceConfig.disabled,
 );
 await detector.initialize();
 ```

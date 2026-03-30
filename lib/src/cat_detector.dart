@@ -50,6 +50,10 @@ class CatDetector {
   final int interpreterPoolSize;
 
   /// Performance configuration for TensorFlow Lite inference.
+  ///
+  /// By default, auto mode selects the optimal delegate per platform:
+  /// - iOS: Metal GPU delegate
+  /// - Android/macOS/Linux/Windows: XNNPACK (2-5x SIMD acceleration)
   final PerformanceConfig performanceConfig;
 
   bool _isInitialized = false;
@@ -62,7 +66,7 @@ class CatDetector {
     this.cropMargin = 0.20,
     this.detThreshold = 0.5,
     int interpreterPoolSize = 1,
-    this.performanceConfig = PerformanceConfig.disabled,
+    this.performanceConfig = const PerformanceConfig(),
   }) : interpreterPoolSize = performanceConfig.mode == PerformanceMode.disabled
             ? interpreterPoolSize
             : 1;
