@@ -1,3 +1,7 @@
+## 1.0.0
+
+* First stable release. On-device cat face detection and 48-point facial landmark prediction using TensorFlow Lite. Supports Android, iOS, macOS, Windows, and Linux with automatic hardware acceleration.
+
 ## 0.0.10
 
 * Update documentation

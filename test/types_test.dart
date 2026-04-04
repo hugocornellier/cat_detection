@@ -59,7 +59,7 @@ void main() {
   });
 
   // ---------------------------------------------------------------------------
-  // CatLandmarkType enum — 48 values, CatFLW dataset topology
+  // CatLandmarkType enum, 48 values, CatFLW dataset topology
   // ---------------------------------------------------------------------------
   group('CatLandmarkType enum', () {
     test('has exactly 48 values', () {
