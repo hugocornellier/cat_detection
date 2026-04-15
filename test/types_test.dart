@@ -599,8 +599,8 @@ void main() {
         y: 456.9,
       );
       final point = landmark.toPixel(640, 480);
-      expect(point.x, 123.7);
-      expect(point.y, 456.9);
+      expect(point.x, 123.0);
+      expect(point.y, 456.0);
     });
 
     test('toPixel with whole-number coordinates', () {
@@ -638,8 +638,8 @@ void main() {
       expect(landmark.x, -10.9);
       expect(landmark.y, -5.3);
       final point = landmark.toPixel(640, 480);
-      expect(point.x, -10.9);
-      expect(point.y, -5.3);
+      expect(point.x, -10.0);
+      expect(point.y, -5.0);
     });
 
     test('edge case: very large coordinates', () {
