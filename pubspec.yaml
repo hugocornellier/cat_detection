@@ -1,6 +1,6 @@
 name: cat_detection
 description: "Cat face and landmark detection using on-device TFLite models."
-version: 1.0.4
+version: 1.0.5
 repository: https://github.com/hugocornellier/cat_detection
 
 environment:

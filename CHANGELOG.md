@@ -1,3 +1,7 @@
+## 1.0.5
+
+* Add public `CatDetector.modelVersion` and `CatDetector.modelVersionFor(...)` APIs for downstream cache invalidation.
+
 ## 1.0.4
 
 * Update flutter_litert -> 2.2.0

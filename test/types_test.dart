@@ -4,6 +4,31 @@ import 'package:cat_detection/cat_detection.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  group('CatDetector model version', () {
+    test('default modelVersion is non-empty and package-scoped', () {
+      expect(CatDetector.modelVersion, isNotEmpty);
+      expect(CatDetector.modelVersion, contains('cat_detection:1.0.5'));
+      expect(CatDetector.modelVersion, CatDetector.modelVersionFor());
+    });
+
+    test('modelVersionFor changes with detector configuration', () {
+      final base = CatDetector.modelVersionFor();
+
+      expect(
+        CatDetector.modelVersionFor(mode: CatDetectionMode.poseOnly),
+        isNot(base),
+      );
+      expect(
+        CatDetector.modelVersionFor(poseModel: AnimalPoseModel.hrnet),
+        isNot(base),
+      );
+      expect(
+        CatDetector.modelVersionFor(landmarkModel: CatLandmarkModel.ensemble),
+        isNot(base),
+      );
+    });
+  });
+
   // ---------------------------------------------------------------------------
   // CatLandmarkModel enum
   // ---------------------------------------------------------------------------
