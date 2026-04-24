@@ -1,6 +1,6 @@
 name: cat_detection
 description: "Cat face and landmark detection using on-device TFLite models."
-version: 1.0.5
+version: 1.0.7
 repository: https://github.com/hugocornellier/cat_detection
 
 environment:
@@ -10,9 +10,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  animal_detection: ^1.0.4
+  animal_detection: ^1.0.6
   opencv_dart: ^2.2.1+4
-  flutter_litert: ^2.2.0
+  flutter_litert: ^2.4.0
   meta: ^1.17.0
   http: ^1.3.0
   path_provider: ^2.1.5
