@@ -9,11 +9,5 @@ Pod::Spec.new do |s|
   s.source                = { :path => '.' }
 
   s.platform              = :osx, '11.0'
-  s.swift_version         = '5.0'
 
-  s.source_files          = 'cat_detection/Sources/cat_detection/**/*'
-  s.resource_bundles      = { 'cat_detection_privacy' => ['cat_detection/Sources/cat_detection/PrivacyInfo.xcprivacy'] }
-
-  s.dependency            'FlutterMacOS'
-  s.static_framework      = true
 end
