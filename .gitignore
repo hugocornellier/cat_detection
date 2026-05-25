@@ -4,5 +4,4 @@ build/
 *.iml
 .idea/
 .DS_Store
-pubspec.lock
-example/pubspec.lock
+/pubspec.lock

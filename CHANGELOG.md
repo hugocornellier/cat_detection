@@ -1,3 +1,13 @@
+## 1.1.1
+
+* Remove unused Darwin podspecs for Dart-only iOS/macOS plugin registration.
+* Require animal_detection 1.1.1.
+
+## 1.1.0
+
+* Update animal_detection -> 1.1.0
+* Update flutter_litert -> 2.5.8
+
 ## 1.0.13
 
 * Update flutter_litert -> 2.5.5
