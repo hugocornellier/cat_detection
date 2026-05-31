@@ -2,3 +2,7 @@ CLAUDE.md
 build/
 assets/screenshots/
 example/integration_test/test_images/
+
+# Example Podfiles (gitignored; not needed in the published tarball).
+example/**/Podfile
+example/**/Podfile.lock
