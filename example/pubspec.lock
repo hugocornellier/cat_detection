@@ -5,10 +5,10 @@ packages:
     dependency: transitive
     description:
       name: animal_detection
-      sha256: "989d86cb049926f41fc5cc1eb65cf7531e71138e0011417dcbb3274e74f75e3c"
+      sha256: b901159c0ecda3a608b460394b24c5b52dfd1195e7739a11d8176414de1bbf2c
       url: "https://pub.dev"
     source: hosted
-    version: "1.2.0"
+    version: "1.2.1"
   async:
     dependency: transitive
     description:
@@ -31,7 +31,7 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "1.2.0"
+    version: "1.2.1"
   change_case:
     dependency: transitive
     description:
@@ -206,10 +206,10 @@ packages:
     dependency: transitive
     description:
       name: flutter_litert
-      sha256: "9c3720d88489786d37de569729280e954e58ce22a3363d06ce1c6472707acd2e"
+      sha256: e114b391ee8c600fe6d7489d0a0d6610166ec7982e5bf5eae6b968c0c1c18462
       url: "https://pub.dev"
     source: hosted
-    version: "2.8.1"
+    version: "2.8.3"
   flutter_plugin_android_lifecycle:
     dependency: transitive
     description:
