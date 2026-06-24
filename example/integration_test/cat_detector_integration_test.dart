@@ -873,8 +873,7 @@ void main() {
       );
       expect(isolate.isReady, true);
 
-      final ByteData data = await rootBundle
-          .load('packages/cat_detection/assets/samples/sample_cat_1.png');
+      final ByteData data = await rootBundle.load(_catImagePath);
       final Uint8List bytes = data.buffer.asUint8List();
 
       final List<Cat> first = await isolate.detectCats(bytes);
@@ -896,8 +895,7 @@ void main() {
       );
       expect(isolate.isReady, true);
 
-      final ByteData data = await rootBundle
-          .load('packages/cat_detection/assets/samples/sample_cat_1.png');
+      final ByteData data = await rootBundle.load(_catImagePath);
       final Uint8List bytes = data.buffer.asUint8List();
 
       final List<Cat> first = await isolate.detectCats(bytes);
@@ -923,8 +921,7 @@ void main() {
       );
       expect(isolate.isReady, true);
 
-      final ByteData data = await rootBundle
-          .load('packages/cat_detection/assets/samples/sample_cat_1.png');
+      final ByteData data = await rootBundle.load(_catImagePath);
       final Uint8List bytes = data.buffer.asUint8List();
       final mat = cv.imdecode(bytes, cv.IMREAD_COLOR);
       expect(mat.isEmpty, isFalse);
