@@ -6,3 +6,16 @@ example/integration_test/test_images/
 # Example Podfiles (gitignored; not needed in the published tarball).
 example/**/Podfile
 example/**/Podfile.lock
+
+# Package tests: not needed by consumers of the published archive
+test/
+
+# Example app: keep example/lib and example/pubspec.yaml (pub.dev Example tab and pana),
+# exclude runner scaffolding and tests, which only matter when cloning from GitHub
+example/android/
+example/ios/
+example/macos/
+example/windows/
+example/linux/
+example/integration_test/
+example/test/
