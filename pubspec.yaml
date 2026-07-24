@@ -1,7 +1,14 @@
 name: cat_detection
-description: "Cat face and landmark detection using on-device TFLite models."
-version: 1.3.3
+description: "Cat face and landmark detection using on-device LiteRT (formerly TensorFlow Lite) models."
+version: 1.4.0
 repository: https://github.com/hugocornellier/cat_detection
+
+topics:
+  - litert
+  - tflite
+  - cat-detection
+  - computer-vision
+  - on-device-ml
 
 environment:
   sdk: ">=3.6.0 <4.0.0"
@@ -10,9 +17,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  animal_detection: ^1.3.3
+  animal_detection: ^1.4.0
   opencv_dart: ^2.2.1+4
-  flutter_litert: ^3.5.0
+  flutter_litert: ^3.6.0
   meta: ^1.17.0
   http: ^1.3.0
   path_provider: ^2.1.5

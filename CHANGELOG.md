@@ -1,3 +1,13 @@
+## 1.4.0
+
+* Update animal_detection -> 1.4.0, which replaces its shipped 12,944-line SSD
+  anchor table with runtime generation. Detection output is unchanged: verified
+  against the real model over 9 images at 100 runs each with identical detection
+  counts, bit-identical scores, and a worst-case box coordinate delta of
+  9.3e-05 px. The shared library drops from 15,222 to 2,355 lines and the
+  compiled binary shrinks by about 32 KB.
+* Update flutter_litert -> 3.6.0.
+
 ## 1.3.3
 
 * Update flutter_litert -> 3.5.0
