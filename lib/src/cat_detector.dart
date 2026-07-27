@@ -23,8 +23,8 @@ import 'util/model_downloader.dart';
 /// await detector.dispose();
 /// ```
 class CatDetector {
-  static const String _packageVersion = '1.5.0';
-  static const String _pipelineVersion = 'pipeline_v2';
+  static const String _packageVersion = '2.0.0';
+  static const String _pipelineVersion = 'pipeline_v3';
 
   /// Input resolution of the bundled landmark model.
   ///

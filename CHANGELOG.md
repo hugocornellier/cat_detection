@@ -1,3 +1,24 @@
+## 2.0.0
+
+* Require animal_detection 2.0.0, which replaces its boxed nested input and
+  output tensors with reused flat `Float32List`s handed to TFLite as
+  `ByteBuffer`s. Measured on this pipeline over a 3264x2448 photo in profile
+  mode with `PerformanceMode.auto`, the full pipeline drops from 438 ms/frame to
+  109 ms/frame and poseOnly from about 44 ms to 15 ms.
+
+* Landmark and pose coordinates shift slightly. animal_detection 2.0.0 fixes
+  `ImageUtils.cropAndResize` describing an integral crop with pre-truncation
+  floats, which placed landmarks about 0.61px right and 0.52px down of ground
+  truth. Measured over the 311-image CatFLW holdout with real localizer boxes,
+  that cost 0.255 NME_IOD, rising to 1.14 at the 95th percentile, with 72% of
+  images improving. `_pipelineVersion` is bumped to `pipeline_v3` accordingly,
+  so downstream caches re-evaluate stored detections.
+
+* `AnimalPoseModel.hrnet` now works. animal_detection was requesting
+  `superanimal_hrnet_w32_256_float16.tflite` while its release publishes
+  `superanimal_hrnet_w32_float16.tflite`, so selecting HRNet failed with an
+  HTTP 404 on first use and had never worked.
+
 ## 1.5.0
 
 * Replace the bundled face landmark model with the MobileNetV3Large 384px

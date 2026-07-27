@@ -336,26 +336,40 @@ void main() {
       // CatFLW images even though NME_IOD degrades badly. The bundled model's
       // native input shape is asserted directly in the test below instead.
       const ears = [
-        CatLandmarkType.rightEar0, CatLandmarkType.rightEar1,
-        CatLandmarkType.rightEar2, CatLandmarkType.rightEar3,
-        CatLandmarkType.rightEar4, CatLandmarkType.leftEar0,
-        CatLandmarkType.leftEar1, CatLandmarkType.leftEar2,
-        CatLandmarkType.leftEar3, CatLandmarkType.leftEar4,
+        CatLandmarkType.rightEar0,
+        CatLandmarkType.rightEar1,
+        CatLandmarkType.rightEar2,
+        CatLandmarkType.rightEar3,
+        CatLandmarkType.rightEar4,
+        CatLandmarkType.leftEar0,
+        CatLandmarkType.leftEar1,
+        CatLandmarkType.leftEar2,
+        CatLandmarkType.leftEar3,
+        CatLandmarkType.leftEar4,
       ];
       const eyes = [
-        CatLandmarkType.rightEyeOuter, CatLandmarkType.rightEyeTop,
-        CatLandmarkType.rightEyeInner, CatLandmarkType.rightEyeBottom,
-        CatLandmarkType.leftEyeOuter, CatLandmarkType.leftEyeTop,
-        CatLandmarkType.leftEyeInner, CatLandmarkType.leftEyeBottom,
+        CatLandmarkType.rightEyeOuter,
+        CatLandmarkType.rightEyeTop,
+        CatLandmarkType.rightEyeInner,
+        CatLandmarkType.rightEyeBottom,
+        CatLandmarkType.leftEyeOuter,
+        CatLandmarkType.leftEyeTop,
+        CatLandmarkType.leftEyeInner,
+        CatLandmarkType.leftEyeBottom,
       ];
       const nose = [
-        CatLandmarkType.noseLeft, CatLandmarkType.noseRight,
-        CatLandmarkType.noseTipLeft, CatLandmarkType.noseTipRight,
-        CatLandmarkType.noseWingLeft, CatLandmarkType.noseWingRight,
+        CatLandmarkType.noseLeft,
+        CatLandmarkType.noseRight,
+        CatLandmarkType.noseTipLeft,
+        CatLandmarkType.noseTipRight,
+        CatLandmarkType.noseWingLeft,
+        CatLandmarkType.noseWingRight,
       ];
       const mouth = [
-        CatLandmarkType.mouthTop, CatLandmarkType.mouthBottom,
-        CatLandmarkType.mouthCornerLeft, CatLandmarkType.mouthCornerRight,
+        CatLandmarkType.mouthTop,
+        CatLandmarkType.mouthBottom,
+        CatLandmarkType.mouthCornerLeft,
+        CatLandmarkType.mouthCornerRight,
         CatLandmarkType.chinCenter,
       ];
 
@@ -377,7 +391,7 @@ void main() {
 
         double meanY(List<CatLandmarkType> group) =>
             group.map((t) => face.getLandmark(t)!.y).reduce((a, b) => a + b) /
-                group.length;
+            group.length;
 
         final earY = meanY(ears);
         final eyeY = meanY(eyes);
