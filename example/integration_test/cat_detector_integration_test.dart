@@ -9,7 +9,8 @@
 // - Error recovery after empty-result input
 // - Result consistency / determinism
 // - Configuration parameters (cropMargin, PerformanceConfig)
-// - CatDetectorIsolate (spawn, detect, detectFromMat, re-spawn)
+// - CatDetector isolate transport (detect, detectFromMat, re-init, concurrency)
+// - CatDetectorIsolate deprecated shim still delegating to CatDetector
 //
 // Run with:
 //   cd example && flutter test integration_test/
@@ -886,19 +887,22 @@ void main() {
   });
 
   // ---------------------------------------------------------------------------
-  // 9. CatDetectorIsolate
+  // 9. CatDetector isolate execution
+  //
+  // CatDetector owns a background isolate internally, so these exercise the
+  // real isolate transport: encoded-image and Mat requests, dispose/re-init,
+  // and repeated requests over one long-lived worker.
   // ---------------------------------------------------------------------------
 
-  group('CatDetectorIsolate', () {
-    testWidgets('should detect cats via isolate', (tester) async {
-      final isolate = await CatDetectorIsolate.spawn(
-        mode: CatDetectionMode.full,
-      );
-      expect(isolate.isReady, true);
+  group('CatDetector isolate execution', () {
+    testWidgets('should detect cats via the isolate', (tester) async {
+      final detector = CatDetector(mode: CatDetectionMode.full);
+      await detector.initialize();
+      expect(detector.isReady, true);
 
       final ByteData data = await rootBundle.load(_catImagePath);
       final Uint8List bytes = data.buffer.asUint8List();
-      final List<Cat> results = await isolate.detectCats(bytes);
+      final List<Cat> results = await detector.detect(bytes);
 
       debugPrint('Isolate: ${results.length} cat(s) detected');
       for (final cat in results) {
@@ -917,21 +921,20 @@ void main() {
       expect(cat.imageWidth, greaterThan(0));
       expect(cat.imageHeight, greaterThan(0));
 
-      await isolate.dispose();
+      await detector.dispose();
     });
 
-    testWidgets('should detect cats from Mat via isolate', (tester) async {
-      final isolate = await CatDetectorIsolate.spawn(
-        mode: CatDetectionMode.full,
-      );
+    testWidgets('should detect cats from a Mat via the isolate',
+        (tester) async {
+      final detector = CatDetector(mode: CatDetectionMode.full);
+      await detector.initialize();
 
       final ByteData data = await rootBundle.load(_catImagePath);
-      final Uint8List bytes = data.buffer.asUint8List();
-      final mat = cv.imdecode(bytes, cv.IMREAD_COLOR);
+      final mat = cv.imdecode(data.buffer.asUint8List(), cv.IMREAD_COLOR);
       expect(mat.isEmpty, isFalse);
 
       try {
-        final List<Cat> results = await isolate.detectCatsFromMat(mat);
+        final List<Cat> results = await detector.detectFromMat(mat);
 
         expect(results, isNotEmpty);
 
@@ -943,127 +946,179 @@ void main() {
         mat.dispose();
       }
 
-      await isolate.dispose();
-    });
-
-    testWidgets('should match main thread results', (tester) async {
-      final detector = CatDetector();
-      await detector.initialize();
-
-      final isolate = await CatDetectorIsolate.spawn(
-        mode: CatDetectionMode.full,
-      );
-
-      final ByteData data = await rootBundle.load(_catImagePath);
-      final Uint8List bytes = data.buffer.asUint8List();
-
-      final List<Cat> mainResults = await detector.detect(bytes);
-      final List<Cat> isolateResults = await isolate.detectCats(bytes);
-
-      expect(mainResults.length, isolateResults.length);
-
-      for (int i = 0; i < mainResults.length; i++) {
-        expect(mainResults[i].face?.landmarks.length,
-            isolateResults[i].face?.landmarks.length,
-            reason: 'Landmark count mismatch at index $i');
-      }
-
       await detector.dispose();
-      await isolate.dispose();
     });
 
-    testWidgets('should support dispose and re-spawn', (tester) async {
-      final first = await CatDetectorIsolate.spawn();
-      expect(first.isReady, true);
-      await first.dispose();
-      expect(first.isReady, false);
-
-      // Spawn a new isolate after the previous one was disposed.
-      final second = await CatDetectorIsolate.spawn();
-      expect(second.isReady, true);
-
-      final ByteData data = await rootBundle.load(_catImagePath);
-      final Uint8List bytes = data.buffer.asUint8List();
-      final List<Cat> results = await second.detectCats(bytes);
-
-      expect(results, isNotEmpty);
-
-      await second.dispose();
-    });
-
-    testWidgets('should handle two sequential detectCats calls on same isolate',
-        (tester) async {
-      final isolate = await CatDetectorIsolate.spawn(
-        mode: CatDetectionMode.full,
-      );
-      expect(isolate.isReady, true);
-
-      final ByteData data = await rootBundle.load(_catImagePath);
-      final Uint8List bytes = data.buffer.asUint8List();
-
-      final List<Cat> first = await isolate.detectCats(bytes);
-      expect(first, isNotEmpty);
-
-      final List<Cat> second = await isolate.detectCats(bytes);
-      expect(second, isNotEmpty);
-
-      expect(first.length, second.length);
-
-      await isolate.dispose();
-    });
-
-    testWidgets(
-        'should handle three sequential detectCats calls on same isolate',
-        (tester) async {
-      final isolate = await CatDetectorIsolate.spawn(
-        mode: CatDetectionMode.full,
-      );
-      expect(isolate.isReady, true);
-
-      final ByteData data = await rootBundle.load(_catImagePath);
-      final Uint8List bytes = data.buffer.asUint8List();
-
-      final List<Cat> first = await isolate.detectCats(bytes);
-      expect(first, isNotEmpty);
-
-      final List<Cat> second = await isolate.detectCats(bytes);
-      expect(second, isNotEmpty);
-
-      final List<Cat> third = await isolate.detectCats(bytes);
-      expect(third, isNotEmpty);
-
-      expect(first.length, second.length);
-      expect(second.length, third.length);
-
-      await isolate.dispose();
-    });
-
-    testWidgets(
-        'should handle two sequential detectCatsFromMat calls on same isolate',
-        (tester) async {
-      final isolate = await CatDetectorIsolate.spawn(
-        mode: CatDetectionMode.full,
-      );
-      expect(isolate.isReady, true);
+    testWidgets('detect and detectFromMat should agree', (tester) async {
+      final detector = CatDetector(mode: CatDetectionMode.full);
+      await detector.initialize();
 
       final ByteData data = await rootBundle.load(_catImagePath);
       final Uint8List bytes = data.buffer.asUint8List();
       final mat = cv.imdecode(bytes, cv.IMREAD_COLOR);
+
+      try {
+        final List<Cat> fromBytes = await detector.detect(bytes);
+        final List<Cat> fromMat = await detector.detectFromMat(mat);
+
+        expect(fromBytes.length, fromMat.length);
+        for (int i = 0; i < fromBytes.length; i++) {
+          expect(fromBytes[i].face?.landmarks.length,
+              fromMat[i].face?.landmarks.length,
+              reason: 'Landmark count mismatch at index $i');
+        }
+      } finally {
+        mat.dispose();
+      }
+
+      await detector.dispose();
+    });
+
+    testWidgets('should reject detect() before initialize()', (tester) async {
+      final detector = CatDetector();
+      final ByteData data = await rootBundle.load(_catImagePath);
+
+      expect(detector.isReady, false);
+      await expectLater(
+        detector.detect(data.buffer.asUint8List()),
+        throwsStateError,
+      );
+    });
+
+    testWidgets('should support dispose and re-initialize', (tester) async {
+      final detector = CatDetector();
+      await detector.initialize();
+      expect(detector.isReady, true);
+      await detector.dispose();
+      expect(detector.isReady, false);
+
+      // The same instance must be reusable after its isolate was torn down.
+      await detector.initialize();
+      expect(detector.isReady, true);
+
+      final ByteData data = await rootBundle.load(_catImagePath);
+      final List<Cat> results =
+          await detector.detect(data.buffer.asUint8List());
+
+      expect(results, isNotEmpty);
+
+      await detector.dispose();
+    });
+
+    testWidgets('should handle three sequential detect calls on one isolate',
+        (tester) async {
+      final detector = CatDetector(mode: CatDetectionMode.full);
+      await detector.initialize();
+      expect(detector.isReady, true);
+
+      final ByteData data = await rootBundle.load(_catImagePath);
+      final Uint8List bytes = data.buffer.asUint8List();
+
+      final List<Cat> first = await detector.detect(bytes);
+      final List<Cat> second = await detector.detect(bytes);
+      final List<Cat> third = await detector.detect(bytes);
+
+      expect(first, isNotEmpty);
+      expect(second, isNotEmpty);
+      expect(third, isNotEmpty);
+      expect(first.length, second.length);
+      expect(second.length, third.length);
+
+      await detector.dispose();
+    });
+
+    testWidgets(
+        'should handle two sequential detectFromMat calls on one isolate',
+        (tester) async {
+      final detector = CatDetector(mode: CatDetectionMode.full);
+      await detector.initialize();
+
+      final ByteData data = await rootBundle.load(_catImagePath);
+      final mat = cv.imdecode(data.buffer.asUint8List(), cv.IMREAD_COLOR);
       expect(mat.isEmpty, isFalse);
 
       try {
-        final List<Cat> first = await isolate.detectCatsFromMat(mat);
+        final List<Cat> first = await detector.detectFromMat(mat);
+        final List<Cat> second = await detector.detectFromMat(mat);
+
         expect(first, isNotEmpty);
-
-        final List<Cat> second = await isolate.detectCatsFromMat(mat);
         expect(second, isNotEmpty);
-
         expect(first.length, second.length);
       } finally {
         mat.dispose();
       }
 
+      await detector.dispose();
+    });
+
+    testWidgets('concurrent detect calls should all resolve', (tester) async {
+      final detector = CatDetector(mode: CatDetectionMode.full);
+      await detector.initialize();
+
+      final ByteData data = await rootBundle.load(_catImagePath);
+      final Uint8List bytes = data.buffer.asUint8List();
+
+      // One worker, three in-flight requests: the RPC layer must keep replies
+      // matched to their requests rather than interleaving them.
+      final batch = await Future.wait([
+        detector.detect(bytes),
+        detector.detect(bytes),
+        detector.detect(bytes),
+      ]);
+
+      expect(batch, hasLength(3));
+      for (final results in batch) {
+        expect(results, isNotEmpty);
+        expect(results.length, batch.first.length);
+      }
+
+      await detector.dispose();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // 9b. CatDetectorIsolate (deprecated shim)
+  //
+  // Kept until the class is removed, to prove the delegate still forwards to
+  // CatDetector and produces equivalent results.
+  // ---------------------------------------------------------------------------
+
+  group('CatDetectorIsolate (deprecated)', () {
+    testWidgets('deprecated shim still detects and matches CatDetector',
+        (tester) async {
+      // ignore: deprecated_member_use
+      final isolate = await CatDetectorIsolate.spawn(
+        mode: CatDetectionMode.full,
+      );
+      expect(isolate.isReady, true);
+
+      final detector = CatDetector(mode: CatDetectionMode.full);
+      await detector.initialize();
+
+      final ByteData data = await rootBundle.load(_catImagePath);
+      final Uint8List bytes = data.buffer.asUint8List();
+      final mat = cv.imdecode(bytes, cv.IMREAD_COLOR);
+
+      try {
+        // ignore: deprecated_member_use
+        final List<Cat> viaShim = await isolate.detectCats(bytes);
+        // ignore: deprecated_member_use
+        final List<Cat> viaShimMat = await isolate.detectCatsFromMat(mat);
+        final List<Cat> viaDetector = await detector.detect(bytes);
+
+        expect(viaShim, isNotEmpty);
+        expect(viaShim.length, viaDetector.length);
+        expect(viaShimMat.length, viaDetector.length);
+        expect(viaShim.first.face?.landmarks.length,
+            viaDetector.first.face?.landmarks.length);
+      } finally {
+        mat.dispose();
+      }
+
+      // ignore: deprecated_member_use
       await isolate.dispose();
+      expect(isolate.isReady, false);
+      await detector.dispose();
     });
   });
 

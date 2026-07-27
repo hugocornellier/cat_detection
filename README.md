@@ -147,36 +147,47 @@ final detector = CatDetector(
 
 ## Background Isolate Detection
 
-For applications that require guaranteed non-blocking UI, use `CatDetectorIsolate`. This runs the **entire** detection pipeline in a background isolate, ensuring all processing happens off the main thread.
+Detection always runs in a background isolate. `CatDetector` spawns and owns that
+isolate during `initialize()`, so the whole pipeline (decode, SSD, species, pose,
+localizer, landmarks) stays off the main thread and the UI is never blocked.
+There is nothing extra to opt into:
 
 ```dart
 import 'package:cat_detection/cat_detection.dart';
 
-// Spawn isolate (loads models in background)
-final detector = await CatDetectorIsolate.spawn(
-  mode: CatDetectionMode.full,
-);
+// initialize() loads the models and spawns the worker isolate
+final detector = CatDetector(mode: CatDetectionMode.full);
+await detector.initialize();
 
-// All detection runs in background isolate, UI never blocked
-final cats = await detector.detectCats(imageBytes);
+// Runs in the background isolate; the UI thread stays free
+final cats = await detector.detect(imageBytes);
 
 for (final cat in cats) {
   print('${cat.breed} at ${cat.boundingBox}');
   print('Face landmarks: ${cat.face?.landmarks.length}');
 }
 
-// Cleanup when done
+// Tears down the isolate and frees the native interpreters
 await detector.dispose();
 ```
 
-### When to Use CatDetectorIsolate
+Model bytes are transferred into the isolate with `TransferableTypedData`, so the
+~70MB of weights in the default configuration move without being copied.
 
-| Use Case | Recommended |
-|----------|-------------|
-| Live camera with 60fps UI requirement | `CatDetectorIsolate` |
-| Processing images in a batch queue | `CatDetectorIsolate` |
-| Simple single-image detection | `CatDetector` |
-| Maximum control over pipeline stages | `CatDetector` |
+### Migrating from CatDetectorIsolate
+
+`CatDetectorIsolate` is deprecated and will be removed in the next major release.
+It now just delegates to `CatDetector`, so migration is a rename:
+
+| Before | After |
+|--------|-------|
+| `await CatDetectorIsolate.spawn(...)` | `CatDetector(...)` then `await initialize()` |
+| `detector.detectCats(bytes)` | `detector.detect(bytes)` |
+| `detector.detectCatsFromMat(mat)` | `detector.detectFromMat(mat)` |
+| `detector.dispose()` | `detector.dispose()` (unchanged) |
+
+`onDownloadProgress` moves from `spawn()` to `initialize()`; every other
+configuration argument stays on the `CatDetector` constructor.
 
 ## Performance
 

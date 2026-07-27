@@ -28,8 +28,8 @@
 /// ```
 ///
 /// **Main Classes:**
-/// - [CatDetectorIsolate]: Background isolate wrapper for cat detection
-/// - [CatDetector]: Main API for cat detection
+/// - [CatDetector]: Main API for cat detection. Runs the whole pipeline in a
+///   background isolate it owns, so detection never blocks the UI thread.
 /// - [Cat]: Top-level detection result with body, pose and face info
 /// - [CatFace]: Detected cat face with bounding box and landmarks
 /// - [CatLandmark]: Single face keypoint with 2D coordinates
@@ -55,6 +55,9 @@ library;
 
 export 'src/types.dart';
 export 'src/cat_detector.dart' show CatDetector;
+
+// Deprecated: CatDetector now owns its background isolate, making this wrapper
+// redundant. Kept for one major release to give consumers time to migrate.
 export 'src/isolate/cat_detector_isolate.dart' show CatDetectorIsolate;
 
 // Re-export everything from animal_detection that consumers need

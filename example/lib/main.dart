@@ -115,7 +115,7 @@ class StillImageScreen extends StatefulWidget {
 }
 
 class _StillImageScreenState extends State<StillImageScreen> {
-  CatDetectorIsolate? _detector;
+  CatDetector? _detector;
   final ImagePicker _picker = ImagePicker();
 
   bool _useEnsemble = false;
@@ -167,12 +167,13 @@ class _StillImageScreenState extends State<StillImageScreen> {
         }
       }
 
-      _detector = await CatDetectorIsolate.spawn(
+      final detector = CatDetector(
         mode: _detectionMode,
         poseModel: _poseModel,
         landmarkModel:
             _useEnsemble ? CatLandmarkModel.ensemble : CatLandmarkModel.full,
-        performanceConfig: PerformanceConfig.disabled,
+      );
+      await detector.initialize(
         onDownloadProgress: (model, received, total) {
           if (!mounted) return;
           final mb = (received / 1024 / 1024).toStringAsFixed(1);
@@ -191,6 +192,7 @@ class _StillImageScreenState extends State<StillImageScreen> {
           });
         },
       );
+      _detector = detector;
 
       if (!mounted) return;
       setState(() {
@@ -291,7 +293,7 @@ class _StillImageScreenState extends State<StillImageScreen> {
     });
 
     try {
-      final List<Cat> results = await _detector!.detectCats(bytes);
+      final List<Cat> results = await _detector!.detect(bytes);
 
       int imgW = 0;
       int imgH = 0;
