@@ -17,12 +17,12 @@ import 'package:animal_detection/animal_detection.dart';
 
 /// Cat landmark model variant for landmark extraction.
 ///
-/// - [full]: Single model at 256px input resolution (bundled, ~55MB).
+/// - [full]: Single model at 384px input resolution (bundled, ~11MB).
 /// - [ensemble]: 3-model ensemble (256px + 320px + 384px) averaging predictions
-///   for improved accuracy. The 320px and 384px models are downloaded on-demand
+///   for improved accuracy. The 256px and 320px models are downloaded on-demand
 ///   from GitHub Releases on first use.
 enum CatLandmarkModel {
-  /// Full model at 256px input resolution (bundled with the package).
+  /// Full model at 384px input resolution (bundled with the package).
   full,
 
   /// 3-model ensemble (256px + 320px + 384px) with multi-scale + flip TTA.

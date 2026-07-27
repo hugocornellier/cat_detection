@@ -114,7 +114,11 @@ class CatDetectorIsolate {
   /// - [landmarkModel]: Cat landmark model variant
   /// - [cropMargin]: Margin fraction added to bbox sides before Stage 2 crop
   /// - [interpreterPoolSize]: Number of landmark model interpreter instances
-  /// - [performanceConfig]: Hardware acceleration settings
+  /// - [performanceConfig]: Hardware acceleration settings. Defaults to
+  ///   [PerformanceMode.auto] (Metal on iOS, XNNPACK elsewhere). Pass
+  ///   [PerformanceConfig.disabled] only to deliberately opt out: on a
+  ///   3264x2448 photo, disabling acceleration measured 1716 ms/frame versus
+  ///   438 ms/frame with auto.
   ///
   /// Example:
   /// ```dart
@@ -128,7 +132,7 @@ class CatDetectorIsolate {
     CatLandmarkModel landmarkModel = CatLandmarkModel.full,
     double cropMargin = 0.20,
     int interpreterPoolSize = 1,
-    PerformanceConfig performanceConfig = PerformanceConfig.disabled,
+    PerformanceConfig performanceConfig = const PerformanceConfig(),
     void Function(String model, int received, int total)? onDownloadProgress,
   }) async {
     final instance = CatDetectorIsolate._();

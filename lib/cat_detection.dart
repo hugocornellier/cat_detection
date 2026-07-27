@@ -44,7 +44,7 @@
 /// - [AnimalPoseModel.hrnet]: HRNet-w32 (54.6MB, downloaded on demand). Most accurate.
 ///
 /// **Face Landmark Model Variants:**
-/// - [CatLandmarkModel.full]: Single model at 256px input resolution (bundled)
+/// - [CatLandmarkModel.full]: Single model at 384px input resolution (11MB, bundled)
 /// - [CatLandmarkModel.ensemble]: 3-model ensemble (256px + 320px + 384px) with
 ///   multi-scale + flip TTA. Extra models downloaded on-demand from GitHub Releases.
 ///

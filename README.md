@@ -110,7 +110,7 @@ print('Size: $width x $height');
 | Model | Size | Input | Purpose |
 |-------|------|-------|---------|
 | Face localizer | 17 MB | 224x224 | Cat face detection and bounding box |
-| Landmark model (full) | 57 MB | 256x256 | 48-point facial landmark extraction |
+| Landmark model (full) | 11 MB | 384x384 | 48-point facial landmark extraction |
 
 ## Configuration Options
 

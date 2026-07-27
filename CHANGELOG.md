@@ -1,3 +1,21 @@
+## 1.5.0
+
+* Replace the bundled face landmark model with the MobileNetV3Large 384px
+  variant. The package asset drops from 57.3 MB to 11.6 MB (a 45.7 MB
+  reduction) and accuracy improves: NME_IOD 3.51 vs 3.76 measured in image
+  pixel space over the same 311 held-out CatFLW images, with TFLite invoke
+  latency roughly halved (206 ms -> 103 ms, desktop CPU, 4 threads, XNNPACK).
+  The previously bundled model was the first experiment of the training sweep
+  and had been superseded by later runs.
+* `CatLandmarkModel.full` now runs at 384px input instead of 256px. The input
+  resolution is declared once as a constant rather than repeated at each call
+  site, since the interpreter accepts a mismatched resize without erroring and
+  then silently returns garbage coordinates.
+* Bump `modelVersion` (`_packageVersion` 1.0.5 -> 1.5.0, `_pipelineVersion`
+  pipeline_v1 -> pipeline_v2) so downstream caches invalidate detections
+  produced by the previous model. `_packageVersion` had been stale since 1.0.5
+  and did not track the four releases in between.
+
 ## 1.4.0
 
 * Update animal_detection -> 1.4.0, which replaces its shipped 12,944-line SSD

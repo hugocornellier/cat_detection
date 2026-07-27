@@ -20,6 +20,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:opencv_dart/opencv_dart.dart' as cv;
+import 'package:flutter_litert/flutter_litert.dart';
 import 'package:cat_detection/cat_detection.dart';
 
 /// Path to the test cat image bundled in example/integration_test/test_images/.
@@ -322,6 +323,116 @@ void main() {
       }
 
       await detector.dispose();
+    });
+
+    testWidgets('landmarks are anatomically ordered top to bottom',
+        (tester) async {
+      // Catches gross breakage in the coordinate pipeline: a wrong flip index,
+      // a transposed x/y, or a crop mapped back with the wrong metadata. On a
+      // cat face the group ordering ears -> eyes -> nose -> mouth is stable.
+      //
+      // This is NOT a reliable guard against a wrong input resolution: feeding
+      // the 384px model at 256px still satisfies this ordering on about 75% of
+      // CatFLW images even though NME_IOD degrades badly. The bundled model's
+      // native input shape is asserted directly in the test below instead.
+      const ears = [
+        CatLandmarkType.rightEar0, CatLandmarkType.rightEar1,
+        CatLandmarkType.rightEar2, CatLandmarkType.rightEar3,
+        CatLandmarkType.rightEar4, CatLandmarkType.leftEar0,
+        CatLandmarkType.leftEar1, CatLandmarkType.leftEar2,
+        CatLandmarkType.leftEar3, CatLandmarkType.leftEar4,
+      ];
+      const eyes = [
+        CatLandmarkType.rightEyeOuter, CatLandmarkType.rightEyeTop,
+        CatLandmarkType.rightEyeInner, CatLandmarkType.rightEyeBottom,
+        CatLandmarkType.leftEyeOuter, CatLandmarkType.leftEyeTop,
+        CatLandmarkType.leftEyeInner, CatLandmarkType.leftEyeBottom,
+      ];
+      const nose = [
+        CatLandmarkType.noseLeft, CatLandmarkType.noseRight,
+        CatLandmarkType.noseTipLeft, CatLandmarkType.noseTipRight,
+        CatLandmarkType.noseWingLeft, CatLandmarkType.noseWingRight,
+      ];
+      const mouth = [
+        CatLandmarkType.mouthTop, CatLandmarkType.mouthBottom,
+        CatLandmarkType.mouthCornerLeft, CatLandmarkType.mouthCornerRight,
+        CatLandmarkType.chinCenter,
+      ];
+
+      final detector = CatDetector(mode: CatDetectionMode.full);
+      await detector.initialize();
+
+      final ByteData data = await rootBundle.load(_catImagePath);
+      final Uint8List bytes = data.buffer.asUint8List();
+      final mat = cv.imdecode(bytes, cv.IMREAD_COLOR);
+
+      try {
+        final List<Cat> results = await detector.detectFromMat(
+          mat,
+          imageWidth: mat.cols,
+          imageHeight: mat.rows,
+        );
+        expect(results, isNotEmpty);
+        final face = results.first.face!;
+
+        double meanY(List<CatLandmarkType> group) =>
+            group.map((t) => face.getLandmark(t)!.y).reduce((a, b) => a + b) /
+                group.length;
+
+        final earY = meanY(ears);
+        final eyeY = meanY(eyes);
+        final noseY = meanY(nose);
+        final mouthY = meanY(mouth);
+
+        expect(earY, lessThan(eyeY), reason: 'ears should sit above the eyes');
+        expect(eyeY, lessThan(noseY), reason: 'eyes should sit above the nose');
+        expect(noseY, lessThan(mouthY),
+            reason: 'nose should sit above the mouth');
+
+        // Image-left/right: the cat's right eye appears on the image left.
+        expect(
+          face.getLandmark(CatLandmarkType.rightEyeOuter)!.x,
+          lessThan(face.getLandmark(CatLandmarkType.leftEyeOuter)!.x),
+          reason: 'right eye outer corner should be left of the left eye',
+        );
+      } finally {
+        mat.dispose();
+      }
+
+      await detector.dispose();
+    });
+
+    testWidgets('bundled landmark model native input shape is 384x384',
+        (tester) async {
+      // The deterministic guard for the resolution trap. LandmarkModelRunnerBase
+      // calls resizeInputTensor with the size CatDetector passes it, and TFLite
+      // accepts a resize away from the model's native shape without erroring,
+      // returning finite but wrong coordinates. If the bundled asset is swapped
+      // for a model of a different resolution, this fails immediately instead of
+      // silently degrading accuracy. Keep in sync with
+      // CatDetector._landmarkInputSize.
+      final interpreter = await Interpreter.fromAsset(
+        'packages/cat_detection/assets/models/cat_face_landmarks_full.tflite',
+      );
+      try {
+        expect(interpreter.getInputTensor(0).shape, [1, 384, 384, 3]);
+        expect(interpreter.getOutputTensor(0).shape, [1, numCatLandmarks * 2]);
+      } finally {
+        interpreter.close();
+      }
+    });
+
+    testWidgets('bundled face localizer native input shape is 224x224',
+        (tester) async {
+      final interpreter = await Interpreter.fromAsset(
+        'packages/cat_detection/assets/models/cat_face_localizer.tflite',
+      );
+      try {
+        expect(interpreter.getInputTensor(0).shape, [1, 224, 224, 3]);
+        expect(interpreter.getOutputTensor(0).shape, [1, 4]);
+      } finally {
+        interpreter.close();
+      }
     });
   });
 
