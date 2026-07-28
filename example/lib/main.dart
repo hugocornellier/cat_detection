@@ -590,7 +590,8 @@ class _StillImageScreenState extends State<StillImageScreen> {
               const SizedBox(height: 8),
               RadioGroup<AnimalPoseModel>(
                 groupValue: _poseModel,
-                onChanged: _isDownloading
+                onChanged: (_detectionMode == CatDetectionMode.faceOnly ||
+                        _isDownloading)
                     ? (_) {}
                     : (value) {
                         if (value == null) return;

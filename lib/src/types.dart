@@ -18,9 +18,6 @@ import 'package:animal_detection/animal_detection.dart';
 /// Cat landmark model variant for landmark extraction.
 ///
 /// - [full]: Single model at 384px input resolution (bundled, ~11MB).
-/// - [ensemble]: 3-model ensemble (256px + 320px + 384px) averaging predictions
-///   for improved accuracy. The 256px and 320px models are downloaded on-demand
-///   from GitHub Releases on first use.
 enum CatLandmarkModel {
   /// Full model at 384px input resolution (bundled with the package).
   full,
@@ -212,7 +209,7 @@ const int numCatLandmarks = 48;
 /// Landmark index permutation for horizontal flip (CatFLW convention).
 ///
 /// When an image is horizontally flipped, left/right landmarks swap.
-/// Used internally by the ensemble model for flip test-time augmentation.
+/// Mirror-pair mapping for horizontal-flip augmentation.
 const List<int> catLandmarkFlipIndex = [
   0,
   3,
