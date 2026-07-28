@@ -887,6 +887,83 @@ void main() {
   });
 
   // ---------------------------------------------------------------------------
+  // 8b. CatDetector - faceOnly mode
+  // ---------------------------------------------------------------------------
+
+  group('CatDetector - faceOnly mode', () {
+    testWidgets('returns face landmarks without the body stages',
+        (tester) async {
+      final detector = CatDetector(mode: CatDetectionMode.faceOnly);
+      await detector.initialize();
+
+      final ByteData data = await rootBundle.load(_catImagePath);
+      final mat = cv.imdecode(data.buffer.asUint8List(), cv.IMREAD_COLOR);
+
+      try {
+        final results = await detector.detectFromMat(mat);
+        expect(results, isNotEmpty);
+
+        final cat = results.first;
+        expect(cat.face, isNotNull);
+        expect(cat.face!.landmarks.length, numCatLandmarks);
+
+        // The body pipeline never runs, so there is no pose.
+        expect(cat.pose, isNull);
+
+        // The bounding box is the face, not the body, so it must sit inside
+        // the image and be smaller than a full-body box would be.
+        expect(cat.boundingBox.right, greaterThan(cat.boundingBox.left));
+        expect(cat.boundingBox.bottom, greaterThan(cat.boundingBox.top));
+        expect(cat.boundingBox.left, greaterThanOrEqualTo(0));
+        expect(cat.boundingBox.right, lessThanOrEqualTo(mat.cols.toDouble()));
+
+        for (final lm in cat.face!.landmarks) {
+          expect(lm.x.isFinite, isTrue);
+          expect(lm.y.isFinite, isTrue);
+        }
+      } finally {
+        mat.dispose();
+      }
+
+      await detector.dispose();
+    });
+
+    testWidgets('is faster than full mode on the same image', (tester) async {
+      final ByteData data = await rootBundle.load(_catImagePath);
+      final mat = cv.imdecode(data.buffer.asUint8List(), cv.IMREAD_COLOR);
+      addTearDown(mat.dispose);
+
+      Future<double> bench(CatDetectionMode mode) async {
+        final d = CatDetector(mode: mode);
+        await d.initialize();
+        try {
+          for (int i = 0; i < 2; i++) {
+            await d.detectFromMat(mat);
+          }
+          final sw = Stopwatch()..start();
+          for (int i = 0; i < 5; i++) {
+            await d.detectFromMat(mat);
+          }
+          sw.stop();
+          return sw.elapsedMicroseconds / 5 / 1000.0;
+        } finally {
+          await d.dispose();
+        }
+      }
+
+      final fullMs = await bench(CatDetectionMode.full);
+      final faceMs = await bench(CatDetectionMode.faceOnly);
+      debugPrint('FACEONLY full=${fullMs.toStringAsFixed(1)}ms '
+          'faceOnly=${faceMs.toStringAsFixed(1)}ms '
+          'saved=${(fullMs - faceMs).toStringAsFixed(1)}ms');
+
+      // faceOnly skips SSD, species and pose, so it must be cheaper. Debug-mode
+      // timings are noisy, so this only asserts the direction.
+      expect(faceMs, lessThan(fullMs));
+    }, timeout: const Timeout(Duration(minutes: 5)));
+  });
+
+  // ---------------------------------------------------------------------------
   // 9. CatDetector isolate execution
   //
   // CatDetector owns a background isolate internally, so these exercise the

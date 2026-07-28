@@ -38,6 +38,7 @@
 /// **Detection Modes:**
 /// - [CatDetectionMode.full]: SSD body detection + species + body pose + face landmarks
 /// - [CatDetectionMode.poseOnly]: Body detection + species + body pose only
+/// - [CatDetectionMode.faceOnly]: Face localizer + face landmarks, no SSD stage
 ///
 /// **Pose Model Variants:**
 /// - [AnimalPoseModel.rtmpose]: RTMPose-S (11.6MB, bundled). Fast SimCC-based decoder.

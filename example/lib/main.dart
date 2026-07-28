@@ -629,6 +629,8 @@ class _StillImageScreenState extends State<StillImageScreen> {
         return 'Full';
       case CatDetectionMode.poseOnly:
         return 'Pose Only';
+      case CatDetectionMode.faceOnly:
+        return 'Face Only';
     }
   }
 
@@ -638,6 +640,8 @@ class _StillImageScreenState extends State<StillImageScreen> {
         return 'Body detection + species + pose + face landmarks';
       case CatDetectionMode.poseOnly:
         return 'Body detection + species + body pose only';
+      case CatDetectionMode.faceOnly:
+        return 'Face landmarks only (no body stages)';
     }
   }
 

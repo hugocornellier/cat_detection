@@ -1,5 +1,22 @@
 ## 2.0.0
 
+* Added `CatDetectionMode.faceOnly`, matching the mode dog_detection already
+  had. It runs the face localizer on the whole letterboxed image and then the
+  landmark model, skipping SSD body detection, species classification and body
+  pose. Those three stages account for about 23MB of model weights that are
+  never loaded and, measured on a 3264x2448 photo, roughly 16ms per frame
+  (118.1 ms to 101.7 ms).
+
+  Running the localizer on the whole image is what it was trained for; `full`
+  instead runs it inside an SSD body crop. The localizer emits a single box, so
+  `faceOnly` returns at most one face however many cats are present, and the
+  returned `Cat` has no species, breed or pose. `full` is unchanged and remains
+  the default, still returning body box, species, body pose and face landmarks
+  together.
+
+  Adding an enum value is breaking for exhaustive switches over
+  `CatDetectionMode`, which is why it lands in this release.
+
 * **Removed** `CatLandmarkModel.ensemble`. The mode required two extra models
   from a GitHub release that was never published, so selecting it always failed
   with an HTTP 404 and it has never worked. Rebuilding it was not worthwhile:

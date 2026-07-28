@@ -9,6 +9,7 @@ import '../types.dart';
 /// - [CatDetectionMode.full]: SSD body detection + species classification +
 ///   body pose estimation + face landmarks.
 /// - [CatDetectionMode.poseOnly]: Body detection + species + body pose only.
+/// - [CatDetectionMode.faceOnly]: Face localizer + face landmarks, no SSD.
 ///
 /// Uses [AnimalDetector] from the animal_detection package for body detection,
 /// species classification, and pose estimation. Cat-specific face landmark
@@ -29,7 +30,7 @@ class CatDetectorCore {
   // Animal detection pipeline (full / poseOnly)
   AnimalDetector? _animalDetector;
 
-  // Face pipeline (full)
+  // Face pipeline (full / faceOnly)
   FaceLocalizerModel? _localizer;
   LandmarkModelRunnerBase? _lm;
 
@@ -93,7 +94,8 @@ class CatDetectorCore {
 
     final bool needsBody =
         mode == CatDetectionMode.full || mode == CatDetectionMode.poseOnly;
-    final bool needsFace = mode == CatDetectionMode.full;
+    final bool needsFace =
+        mode == CatDetectionMode.full || mode == CatDetectionMode.faceOnly;
 
     if (needsBody) {
       if (bodyDetectorBytes == null) {
@@ -136,12 +138,12 @@ class CatDetectorCore {
     if (needsFace) {
       if (localizerBytes == null) {
         throw ArgumentError(
-          'localizerBytes is required for full mode',
+          'localizerBytes is required for full/faceOnly mode',
         );
       }
       if (landmarkBytes == null) {
         throw ArgumentError(
-          'landmarkBytes is required for full mode',
+          'landmarkBytes is required for full/faceOnly mode',
         );
       }
 
@@ -221,7 +223,39 @@ class CatDetectorCore {
       throw StateError('CatDetector not initialized. Call initialize() first.');
     }
 
+    if (mode == CatDetectionMode.faceOnly) {
+      return _detectFaceOnly(image, imageWidth, imageHeight);
+    }
+
     return _detectWithBody(image, imageWidth, imageHeight);
+  }
+
+  /// Pipeline for [CatDetectionMode.faceOnly].
+  ///
+  /// Runs the face localizer directly on the whole image, then the landmark
+  /// model on the box it returns. No SSD, species classifier or body pose, so
+  /// the returned [Cat] has no species, breed or pose, and its bounding box is
+  /// the face rather than the body.
+  Future<List<Cat>> _detectFaceOnly(
+    cv.Mat image,
+    int imageWidth,
+    int imageHeight,
+  ) async {
+    final BoundingBox? bbox = await _localizer!.detect(image);
+    if (bbox == null) return <Cat>[];
+
+    final CatFace face =
+        await _runFaceLandmarks(image, bbox, imageWidth, imageHeight);
+
+    return [
+      Cat(
+        boundingBox: bbox,
+        score: 1.0,
+        face: face,
+        imageWidth: imageWidth,
+        imageHeight: imageHeight,
+      ),
+    ];
   }
 
   /// Pipeline for [CatDetectionMode.full] and [CatDetectionMode.poseOnly].

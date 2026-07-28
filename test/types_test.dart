@@ -55,13 +55,18 @@ void main() {
   // CatDetectionMode enum
   // ---------------------------------------------------------------------------
   group('CatDetectionMode enum', () {
-    test('has exactly 2 values', () {
-      expect(CatDetectionMode.values.length, 2);
+    test('has exactly 3 values', () {
+      expect(CatDetectionMode.values.length, 3);
     });
 
-    test('values are full and poseOnly', () {
+    test('values are full, poseOnly and faceOnly', () {
       expect(CatDetectionMode.values.contains(CatDetectionMode.full), true);
       expect(CatDetectionMode.values.contains(CatDetectionMode.poseOnly), true);
+      expect(CatDetectionMode.values.contains(CatDetectionMode.faceOnly), true);
+    });
+
+    test('faceOnly has index 2', () {
+      expect(CatDetectionMode.faceOnly.index, 2);
     });
 
     test('full has index 0', () {

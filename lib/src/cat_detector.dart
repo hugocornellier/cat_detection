@@ -62,10 +62,11 @@ class _IsolateStartupData {
 /// needed) on the main isolate and transferred into the worker during
 /// [initialize].
 ///
-/// Supports two modes:
+/// Supports three modes:
 /// - [CatDetectionMode.full]: SSD body detection + species classification +
 ///   body pose estimation + face landmarks.
 /// - [CatDetectionMode.poseOnly]: Body detection + species + body pose only.
+/// - [CatDetectionMode.faceOnly]: Face localizer + face landmarks, no SSD stage.
 ///
 /// Usage:
 /// ```dart
@@ -165,7 +166,8 @@ class CatDetector {
       await dispose();
     }
 
-    final bool needsFace = mode == CatDetectionMode.full;
+    final bool needsFace =
+        mode == CatDetectionMode.full || mode == CatDetectionMode.faceOnly;
     final bool needsBody =
         mode == CatDetectionMode.full || mode == CatDetectionMode.poseOnly;
 
