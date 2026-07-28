@@ -2,7 +2,6 @@ import 'dart:typed_data';
 import 'package:opencv_dart/opencv_dart.dart' as cv;
 import 'package:animal_detection/animal_detection.dart';
 import '../types.dart';
-import '../util/model_downloader.dart';
 
 /// In-isolate implementation of the cat detection pipeline.
 ///
@@ -33,7 +32,6 @@ class CatDetectorCore {
   // Face pipeline (full)
   FaceLocalizerModel? _localizer;
   LandmarkModelRunnerBase? _lm;
-  EnsembleLandmarkModelBase? _ensemble;
 
   /// Detection mode controlling pipeline behavior.
   final CatDetectionMode mode;
@@ -83,8 +81,6 @@ class CatDetectorCore {
   Future<void> initializeFromBuffers({
     Uint8List? localizerBytes,
     Uint8List? landmarkBytes,
-    Uint8List? ensemble256Bytes,
-    Uint8List? ensemble320Bytes,
     Uint8List? bodyDetectorBytes,
     Uint8List? classifierBytes,
     String? speciesMappingJson,
@@ -160,41 +156,18 @@ class CatDetectorCore {
         useIsolateInterpreter: useIsolateInterpreter,
       );
 
-      if (landmarkModel == CatLandmarkModel.ensemble) {
-        if (ensemble256Bytes == null || ensemble320Bytes == null) {
-          throw ArgumentError(
-            'ensemble256Bytes and ensemble320Bytes are required for ensemble mode',
-          );
-        }
-        _ensemble = EnsembleLandmarkModelBase(
-          numLandmarks: numCatLandmarks,
-          flipIndex: catLandmarkFlipIndex,
-          bundledModelPath:
-              'packages/cat_detection/assets/models/cat_face_landmarks_full.tflite',
-          getEnsembleModels: CatModelDownloader.getEnsembleModels,
-          poolSize: interpreterPoolSize,
-        );
-        await _ensemble!.initializeFromBuffers(
-          bytes256: ensemble256Bytes,
-          bytes320: ensemble320Bytes,
-          bytes384: landmarkBytes,
-          performanceConfig: performanceConfig,
-          useIsolateInterpreter: useIsolateInterpreter,
-        );
-      } else {
-        _lm = LandmarkModelRunnerBase(
-          inputSize: _landmarkInputSize,
-          numLandmarks: numCatLandmarks,
-          modelPath:
-              'packages/cat_detection/assets/models/cat_face_landmarks_full.tflite',
-          poolSize: interpreterPoolSize,
-        );
-        await _lm!.initializeFromBuffer(
-          landmarkBytes,
-          performanceConfig,
-          useIsolateInterpreter: useIsolateInterpreter,
-        );
-      }
+      _lm = LandmarkModelRunnerBase(
+        inputSize: _landmarkInputSize,
+        numLandmarks: numCatLandmarks,
+        modelPath:
+            'packages/cat_detection/assets/models/cat_face_landmarks_full.tflite',
+        poolSize: interpreterPoolSize,
+      );
+      await _lm!.initializeFromBuffer(
+        landmarkBytes,
+        performanceConfig,
+        useIsolateInterpreter: useIsolateInterpreter,
+      );
     }
 
     _isInitialized = true;
@@ -208,11 +181,9 @@ class CatDetectorCore {
     await _animalDetector?.dispose();
     _localizer?.dispose();
     _lm?.dispose();
-    _ensemble?.dispose();
     _animalDetector = null;
     _localizer = null;
     _lm = null;
-    _ensemble = null;
     _isInitialized = false;
   }
 
@@ -338,9 +309,7 @@ class CatDetectorCore {
     int imageWidth,
     int imageHeight,
   ) async {
-    final int cropSize = landmarkModel == CatLandmarkModel.ensemble
-        ? _ensemble!.inputSize
-        : _lm!.inputSize;
+    final int cropSize = _lm!.inputSize;
 
     final (faceCrop, meta) = ImageUtils.cropAndResize(
       image,
@@ -351,25 +320,14 @@ class CatDetectorCore {
 
     final List<CatLandmark> landmarks;
     try {
-      if (landmarkModel == CatLandmarkModel.ensemble) {
-        final coords = await _ensemble!.predictRaw(faceCrop, meta);
-        landmarks = [
-          for (int i = 0; i < coords.length; i++)
-            CatLandmark(
-                type: CatLandmarkType.values[i],
-                x: coords[i].$1,
-                y: coords[i].$2),
-        ];
-      } else {
-        final coords = await _lm!.predictRaw(faceCrop, meta);
-        landmarks = [
-          for (int i = 0; i < coords.length; i++)
-            CatLandmark(
-                type: CatLandmarkType.values[i],
-                x: coords[i].$1,
-                y: coords[i].$2),
-        ];
-      }
+      final coords = await _lm!.predictRaw(faceCrop, meta);
+      landmarks = [
+        for (int i = 0; i < coords.length; i++)
+          CatLandmark(
+              type: CatLandmarkType.values[i],
+              x: coords[i].$1,
+              y: coords[i].$2),
+      ];
     } finally {
       faceCrop.dispose();
     }

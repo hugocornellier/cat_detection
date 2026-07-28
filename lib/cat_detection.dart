@@ -45,8 +45,6 @@
 ///
 /// **Face Landmark Model Variants:**
 /// - [CatLandmarkModel.full]: Single model at 384px input resolution (11MB, bundled)
-/// - [CatLandmarkModel.ensemble]: 3-model ensemble (256px + 320px + 384px) with
-///   multi-scale + flip TTA. Extra models downloaded on-demand from GitHub Releases.
 ///
 /// **Skeleton Connections:**
 /// - [catLandmarkConnections]: Face landmark skeleton edges (CatFLW 48-landmark topology)

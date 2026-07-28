@@ -118,7 +118,6 @@ class _StillImageScreenState extends State<StillImageScreen> {
   CatDetector? _detector;
   final ImagePicker _picker = ImagePicker();
 
-  bool _useEnsemble = false;
   CatDetectionMode _detectionMode = CatDetectionMode.full;
   AnimalPoseModel _poseModel = AnimalPoseModel.rtmpose;
   bool _isInitialized = false;
@@ -147,16 +146,6 @@ class _StillImageScreenState extends State<StillImageScreen> {
     try {
       await _detector?.dispose();
 
-      if (_useEnsemble) {
-        final cached = await CatDetector.isEnsembleCached();
-        if (!cached) {
-          setState(() {
-            _isDownloading = true;
-            _downloadStatus = 'Downloading ensemble models...';
-          });
-        }
-      }
-
       if (_poseModel == AnimalPoseModel.hrnet) {
         final cached = await CatDetector.isHrnetCached();
         if (!cached) {
@@ -170,8 +159,7 @@ class _StillImageScreenState extends State<StillImageScreen> {
       final detector = CatDetector(
         mode: _detectionMode,
         poseModel: _poseModel,
-        landmarkModel:
-            _useEnsemble ? CatLandmarkModel.ensemble : CatLandmarkModel.full,
+        landmarkModel: CatLandmarkModel.full,
       );
       await detector.initialize(
         onDownloadProgress: (model, received, total) {
@@ -209,18 +197,6 @@ class _StillImageScreenState extends State<StillImageScreen> {
         _downloadStatus = '';
         _errorMessage = 'Failed to initialize: $e';
       });
-    }
-  }
-
-  Future<void> _toggleEnsemble(bool value) async {
-    if (value == _useEnsemble) return;
-    setState(() {
-      _useEnsemble = value;
-      _results = [];
-    });
-    await _initializeDetector();
-    if (_imageBytes != null && _isInitialized) {
-      await _runDetection(_imageBytes!);
     }
   }
 
@@ -431,15 +407,6 @@ class _StillImageScreenState extends State<StillImageScreen> {
               'Select an image to detect cats',
               style: TextStyle(fontSize: 18, color: Colors.grey[600]),
             ),
-            if (_useEnsemble)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Chip(
-                  avatar: const Icon(Icons.auto_awesome, size: 16),
-                  label: const Text('Ensemble mode'),
-                  backgroundColor: Colors.amber[50],
-                ),
-              ),
             const SizedBox(height: 24),
             _buildActionButtons(),
           ],
@@ -507,13 +474,6 @@ class _StillImageScreenState extends State<StillImageScreen> {
                                   ),
                             ),
                           ),
-                          if (_useEnsemble)
-                            Chip(
-                              avatar: const Icon(Icons.auto_awesome, size: 14),
-                              label: const Text('Ensemble'),
-                              visualDensity: VisualDensity.compact,
-                              backgroundColor: Colors.amber[50],
-                            ),
                         ],
                       ),
                       const SizedBox(height: 8),
@@ -620,37 +580,6 @@ class _StillImageScreenState extends State<StillImageScreen> {
                         value: mode,
                       ),
                   ],
-                ),
-              ),
-              const Divider(),
-              SwitchListTile(
-                title: const Text('Ensemble mode'),
-                subtitle: Text(
-                  _useEnsemble
-                      ? '3-model ensemble (256+320+384px) for ~8% better accuracy'
-                      : 'Single 384px model (default)',
-                ),
-                secondary: const Icon(Icons.auto_awesome),
-                value: _useEnsemble,
-                onChanged: (_detectionMode == CatDetectionMode.poseOnly ||
-                        _isDownloading)
-                    ? null
-                    : (value) {
-                        setSheetState(() {});
-                        Navigator.pop(context);
-                        _toggleEnsemble(value);
-                      },
-              ),
-              Padding(
-                padding: const EdgeInsets.only(left: 72, top: 4),
-                child: Text(
-                  _useEnsemble
-                      ? 'Extra models are cached locally after first download.'
-                      : 'Enable to download two extra models (~110 MB total) for improved landmark accuracy.',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: Colors.grey[600]),
                 ),
               ),
               const Divider(),

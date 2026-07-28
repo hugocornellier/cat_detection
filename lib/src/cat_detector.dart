@@ -7,7 +7,6 @@ import 'package:opencv_dart/opencv_dart.dart' as cv;
 import 'package:animal_detection/animal_detection.dart';
 
 import 'types.dart';
-import 'util/model_downloader.dart';
 import 'isolate/cat_detector_core.dart';
 
 /// Startup payload for the detection isolate.
@@ -20,8 +19,6 @@ class _IsolateStartupData {
   // Face pipeline
   final TransferableTypedData? localizerBytes;
   final TransferableTypedData? landmarkBytes;
-  final TransferableTypedData? ensemble256Bytes;
-  final TransferableTypedData? ensemble320Bytes;
 
   // Body pipeline
   final TransferableTypedData? bodyDetectorBytes;
@@ -43,8 +40,6 @@ class _IsolateStartupData {
     required this.sendPort,
     this.localizerBytes,
     this.landmarkBytes,
-    this.ensemble256Bytes,
-    this.ensemble320Bytes,
     this.bodyDetectorBytes,
     this.classifierBytes,
     this.speciesMappingJson,
@@ -149,10 +144,6 @@ class CatDetector {
   /// Returns true if the detector has been initialized and is ready to use.
   bool get isInitialized => isReady;
 
-  /// Returns true if the ensemble models are already cached locally.
-  static Future<bool> isEnsembleCached() =>
-      CatModelDownloader.isEnsembleCached();
-
   /// Returns true if the HRNet model is already cached locally.
   static Future<bool> isHrnetCached() => ModelDownloader.isHrnetCached();
 
@@ -164,9 +155,6 @@ class CatDetector {
   ///
   /// When [poseModel] is [AnimalPoseModel.hrnet], the HRNet model (~54.6 MB) is
   /// downloaded from GitHub Releases on first use and cached locally.
-  ///
-  /// When [landmarkModel] is [CatLandmarkModel.ensemble], the extra 256px and
-  /// 320px models are downloaded on first use.
   ///
   /// [onDownloadProgress] is called during any model download with
   /// (modelName, bytesReceived, totalBytes).
@@ -184,8 +172,6 @@ class CatDetector {
     // Face pipeline assets
     TransferableTypedData? localizerTtd;
     TransferableTypedData? landmarkTtd;
-    TransferableTypedData? ensemble256;
-    TransferableTypedData? ensemble320;
 
     if (needsFace) {
       const localizerPath =
@@ -204,14 +190,6 @@ class CatDetector {
       landmarkTtd = TransferableTypedData.fromList(
         [results[1].buffer.asUint8List()],
       );
-
-      if (landmarkModel == CatLandmarkModel.ensemble) {
-        final (bytes256, bytes320) = await CatModelDownloader.getEnsembleModels(
-          onProgress: onDownloadProgress,
-        );
-        ensemble256 = TransferableTypedData.fromList([bytes256]);
-        ensemble320 = TransferableTypedData.fromList([bytes320]);
-      }
     }
 
     // Body pipeline assets
@@ -267,8 +245,6 @@ class CatDetector {
           sendPort: sendPort,
           localizerBytes: localizerTtd,
           landmarkBytes: landmarkTtd,
-          ensemble256Bytes: ensemble256,
-          ensemble320Bytes: ensemble320,
           bodyDetectorBytes: bodyDetectorTtd,
           classifierBytes: classifierTtd,
           speciesMappingJson: speciesMappingJson,
@@ -389,10 +365,6 @@ class CatDetector {
     try {
       final localizerBytes = data.localizerBytes?.materialize().asUint8List();
       final landmarkBytes = data.landmarkBytes?.materialize().asUint8List();
-      final ensemble256Bytes =
-          data.ensemble256Bytes?.materialize().asUint8List();
-      final ensemble320Bytes =
-          data.ensemble320Bytes?.materialize().asUint8List();
 
       final bodyDetectorBytes =
           data.bodyDetectorBytes?.materialize().asUint8List();
@@ -428,8 +400,6 @@ class CatDetector {
       await detector.initializeFromBuffers(
         localizerBytes: localizerBytes,
         landmarkBytes: landmarkBytes,
-        ensemble256Bytes: ensemble256Bytes,
-        ensemble320Bytes: ensemble320Bytes,
         bodyDetectorBytes: bodyDetectorBytes,
         classifierBytes: classifierBytes,
         speciesMappingJson: data.speciesMappingJson,

@@ -1,5 +1,32 @@
 ## 2.0.0
 
+* **Removed** `CatLandmarkModel.ensemble`. The mode required two extra models
+  from a GitHub release that was never published, so selecting it always failed
+  with an HTTP 404 and it has never worked. Rebuilding it was not worthwhile:
+  the only 256px and 320px cat models available are EfficientNetV2S, which
+  measured 156 ms and 242 ms per inference against the bundled MobileNetV3Large
+  model's 83 ms. A three-model ensemble with flip TTA would have cost roughly
+  960 ms/frame and 109 MB of downloads for an accuracy that was never measured
+  in that mixed-backbone configuration. `CatDetector.isEnsembleCached()` is
+  removed with it. `CatLandmarkModel.full` is unchanged and remains the default.
+
+* **Renamed two groups of `CatLandmarkType` values that were mislabelled.**
+  Coordinates are unaffected; only the names change.
+
+  `rightEyeTop` and `rightEyeBottom` were swapped. Index 36 sits above index 38
+  in only 2.9% of the 2079 CatFLW images, and `catLandmarkFlipIndex` pairs 36
+  with `leftEyeBottom` and 38 with `leftEyeTop`. A horizontal flip preserves
+  vertical position, so both the data and the flip table agree the labels were
+  inverted. Index 36 is now `rightEyeBottom` and index 38 is `rightEyeTop`.
+
+  The chin contour points were grouped wrongly. `catLandmarkFlipIndex` mirrors
+  18 with 20 and 19 with 21, making those the left/right pairs, but the names
+  implied the pairs were 18/19 and 20/21. Index 19 is now `chinLeft1` and index
+  20 is `chinRight0`.
+
+  `catLandmarkConnections` is updated so the right-eye ring spans the same
+  landmark indices as before.
+
 * `CatDetector` now runs the whole pipeline in a background isolate that it owns.
   `initialize()` loads the model assets on the main isolate (where `rootBundle`
   is available) and transfers them into a worker it spawns, so detection no
@@ -33,8 +60,10 @@
 * Require animal_detection 2.0.0, which replaces its boxed nested input and
   output tensors with reused flat `Float32List`s handed to TFLite as
   `ByteBuffer`s. Measured on this pipeline over a 3264x2448 photo in profile
-  mode with `PerformanceMode.auto`, the full pipeline drops from 438 ms/frame to
-  109 ms/frame and poseOnly from about 44 ms to 15 ms.
+  mode with `PerformanceMode.auto`, poseOnly drops from 47.7 ms/frame to
+  15.1 ms, a 3.2x speedup on the shared body pipeline. The full pipeline goes
+  from 234.6 ms/frame to 113.7 ms, though that figure also includes the
+  landmark model swap below rather than the tensor change alone.
 
 * Landmark and pose coordinates shift slightly. animal_detection 2.0.0 fixes
   `ImageUtils.cropAndResize` describing an integral crop with pre-truncation

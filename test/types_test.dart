@@ -27,10 +27,6 @@ void main() {
         CatDetector.modelVersionFor(poseModel: AnimalPoseModel.hrnet),
         isNot(base),
       );
-      expect(
-        CatDetector.modelVersionFor(landmarkModel: CatLandmarkModel.ensemble),
-        isNot(base),
-      );
     });
   });
 
@@ -38,26 +34,20 @@ void main() {
   // CatLandmarkModel enum
   // ---------------------------------------------------------------------------
   group('CatLandmarkModel enum', () {
-    test('has exactly 2 values', () {
-      expect(CatLandmarkModel.values.length, 2);
+    test('has exactly 1 value', () {
+      expect(CatLandmarkModel.values.length, 1);
     });
 
     test('full is at index 0', () {
       expect(CatLandmarkModel.full.index, 0);
     });
 
-    test('ensemble is at index 1', () {
-      expect(CatLandmarkModel.ensemble.index, 1);
-    });
-
-    test('values are full and ensemble', () {
-      expect(CatLandmarkModel.values.contains(CatLandmarkModel.full), true);
-      expect(CatLandmarkModel.values.contains(CatLandmarkModel.ensemble), true);
+    test('full is the only variant', () {
+      expect(CatLandmarkModel.values, [CatLandmarkModel.full]);
     });
 
     test('name property works', () {
       expect(CatLandmarkModel.full.name, 'full');
-      expect(CatLandmarkModel.ensemble.name, 'ensemble');
     });
   });
 
@@ -133,8 +123,8 @@ void main() {
 
     test('chin contour indices (18-21)', () {
       expect(CatLandmarkType.chinLeft0.index, 18);
-      expect(CatLandmarkType.chinRight0.index, 19);
-      expect(CatLandmarkType.chinLeft1.index, 20);
+      expect(CatLandmarkType.chinLeft1.index, 19);
+      expect(CatLandmarkType.chinRight0.index, 20);
       expect(CatLandmarkType.chinRight1.index, 21);
     });
 
@@ -162,9 +152,9 @@ void main() {
     });
 
     test('eye detail indices (36-41)', () {
-      expect(CatLandmarkType.rightEyeTop.index, 36);
+      expect(CatLandmarkType.rightEyeBottom.index, 36);
       expect(CatLandmarkType.rightEyeInner.index, 37);
-      expect(CatLandmarkType.rightEyeBottom.index, 38);
+      expect(CatLandmarkType.rightEyeTop.index, 38);
       expect(CatLandmarkType.leftEyeTop.index, 39);
       expect(CatLandmarkType.leftEyeInner.index, 40);
       expect(CatLandmarkType.leftEyeBottom.index, 41);

@@ -24,9 +24,6 @@ import 'package:animal_detection/animal_detection.dart';
 enum CatLandmarkModel {
   /// Full model at 384px input resolution (bundled with the package).
   full,
-
-  /// 3-model ensemble (256px + 320px + 384px) with multi-scale + flip TTA.
-  ensemble,
 }
 
 /// Detection mode controlling the full pipeline behavior.
@@ -103,11 +100,11 @@ enum CatLandmarkType {
   /// Left chin contour point 0 (index 18).
   chinLeft0,
 
-  /// Right chin contour point 0 (index 19).
-  chinRight0,
-
-  /// Left chin contour point 1 (index 20).
+  /// Left chin contour point 1 (index 19).
   chinLeft1,
+
+  /// Right chin contour point 0 (index 20).
+  chinRight0,
 
   /// Right chin contour point 1 (index 21).
   chinRight1,
@@ -154,14 +151,14 @@ enum CatLandmarkType {
   /// Right nose ring point 1 (index 35).
   noseRingRight1,
 
-  /// Top of right eye (index 36).
-  rightEyeTop,
+  /// Bottom of right eye (index 36).
+  rightEyeBottom,
 
   /// Inner corner of right eye (index 37).
   rightEyeInner,
 
-  /// Bottom of right eye (index 38).
-  rightEyeBottom,
+  /// Top of right eye (index 38).
+  rightEyeTop,
 
   /// Top of left eye (index 39).
   leftEyeTop,
@@ -308,10 +305,10 @@ const List<List<CatLandmarkType>> catLandmarkConnections = [
   [CatLandmarkType.leftEar2, CatLandmarkType.leftEar3],
   [CatLandmarkType.leftEar3, CatLandmarkType.leftEar4],
   // Right eye (outer → top → inner → bottom → outer)
-  [CatLandmarkType.rightEyeOuter, CatLandmarkType.rightEyeTop],
-  [CatLandmarkType.rightEyeTop, CatLandmarkType.rightEyeInner],
-  [CatLandmarkType.rightEyeInner, CatLandmarkType.rightEyeBottom],
-  [CatLandmarkType.rightEyeBottom, CatLandmarkType.rightEyeOuter],
+  [CatLandmarkType.rightEyeOuter, CatLandmarkType.rightEyeBottom],
+  [CatLandmarkType.rightEyeBottom, CatLandmarkType.rightEyeInner],
+  [CatLandmarkType.rightEyeInner, CatLandmarkType.rightEyeTop],
+  [CatLandmarkType.rightEyeTop, CatLandmarkType.rightEyeOuter],
   // Left eye (outer → top → inner → bottom → outer)
   [CatLandmarkType.leftEyeOuter, CatLandmarkType.leftEyeTop],
   [CatLandmarkType.leftEyeTop, CatLandmarkType.leftEyeInner],
