@@ -23,7 +23,7 @@ dev_dependencies:
     sdk: flutter
   # Used by the integration test to assert the bundled models' native input
   # shapes match the resolutions CatDetector configures.
-  flutter_litert: ^3.6.0
+  flutter_litert: ^3.7.0
 
 flutter:
   uses-material-design: true
