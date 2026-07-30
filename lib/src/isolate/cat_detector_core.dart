@@ -59,6 +59,14 @@ class CatDetectorCore {
   /// - Android/macOS/Linux/Windows: XNNPACK (2-5x SIMD acceleration)
   final PerformanceConfig performanceConfig;
 
+  /// Optional override of [performanceConfig] for the landmark stage alone.
+  /// See CatDetector.landmarkPerformanceConfig for the measurements behind this.
+  final PerformanceConfig? landmarkPerformanceConfig;
+
+  /// The config the landmark stage actually runs with.
+  PerformanceConfig get effectiveLandmarkConfig =>
+      landmarkPerformanceConfig ?? performanceConfig;
+
   bool _isInitialized = false;
 
   /// Creates a cat detector with the specified configuration.
@@ -70,9 +78,12 @@ class CatDetectorCore {
     this.detThreshold = 0.5,
     int interpreterPoolSize = 1,
     this.performanceConfig = const PerformanceConfig(),
-  }) : interpreterPoolSize = performanceConfig.mode == PerformanceMode.disabled
-            ? interpreterPoolSize
-            : 1;
+    this.landmarkPerformanceConfig,
+  }) : interpreterPoolSize =
+            (landmarkPerformanceConfig ?? performanceConfig).mode ==
+                    PerformanceMode.disabled
+                ? interpreterPoolSize
+                : 1;
 
   /// Initializes the detector from pre-loaded model bytes.
   ///
@@ -167,7 +178,7 @@ class CatDetectorCore {
       );
       await _lm!.initializeFromBuffer(
         landmarkBytes,
-        performanceConfig,
+        effectiveLandmarkConfig,
         useIsolateInterpreter: useIsolateInterpreter,
       );
     }
