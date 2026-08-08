@@ -5,10 +5,10 @@ packages:
     dependency: transitive
     description:
       name: animal_detection
-      sha256: "9f8f5bad4217f87f2082111d650448cf0cee8f60b1071965a64dd6ac499f2355"
+      sha256: d70893f0863a6ba5054374e03be1a7b93aa807a9b58f945dd57992cf5d8ca68f
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.0"
+    version: "2.1.0"
   args:
     dependency: transitive
     description:
