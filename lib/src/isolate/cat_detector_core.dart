@@ -1,6 +1,7 @@
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:opencv_dart/opencv_dart.dart' as cv;
 import 'package:animal_detection/animal_detection.dart';
+import 'package:animal_detection/animal_detection_core.dart';
 import '../types.dart';
 
 /// In-isolate implementation of the cat detection pipeline.
@@ -11,7 +12,7 @@ import '../types.dart';
 /// - [CatDetectionMode.poseOnly]: Body detection + species + body pose only.
 /// - [CatDetectionMode.faceOnly]: Face localizer + face landmarks, no SSD.
 ///
-/// Uses [AnimalDetector] from the animal_detection package for body detection,
+/// Uses [AnimalDetectorCore] from animal_detection for body detection,
 /// species classification, and pose estimation. Cat-specific face landmark
 /// extraction is handled directly.
 ///
@@ -28,7 +29,7 @@ class CatDetectorCore {
   static const int _landmarkInputSize = 384;
 
   // Animal detection pipeline (full / poseOnly)
-  AnimalDetector? _animalDetector;
+  AnimalDetectorCore? _animalDetector;
 
   // Face pipeline (full / faceOnly)
   FaceLocalizerModel? _localizer;
@@ -76,14 +77,10 @@ class CatDetectorCore {
     this.landmarkModel = CatLandmarkModel.full,
     this.cropMargin = 0.20,
     this.detThreshold = 0.5,
-    int interpreterPoolSize = 1,
+    this.interpreterPoolSize = 1,
     this.performanceConfig = const PerformanceConfig(),
     this.landmarkPerformanceConfig,
-  }) : interpreterPoolSize =
-            (landmarkPerformanceConfig ?? performanceConfig).mode ==
-                    PerformanceMode.disabled
-                ? interpreterPoolSize
-                : 1;
+  });
 
   /// Initializes the detector from pre-loaded model bytes.
   ///
@@ -98,6 +95,12 @@ class CatDetectorCore {
     String? speciesMappingJson,
     Uint8List? poseModelBytes,
     bool useIsolateInterpreter = true,
+    bool useCompiledModel = false,
+    Set<Accelerator> accelerators = const {
+      Accelerator.gpu,
+      Accelerator.cpu,
+    },
+    Precision precision = Precision.fp32,
   }) async {
     if (_isInitialized) {
       await dispose();
@@ -130,7 +133,7 @@ class CatDetectorCore {
         );
       }
 
-      _animalDetector = AnimalDetector(
+      _animalDetector = AnimalDetectorCore(
         poseModel: poseModel,
         enablePose: true,
         cropMargin: cropMargin,
@@ -143,6 +146,9 @@ class CatDetectorCore {
         speciesMappingJson: speciesMappingJson,
         poseModelBytes: poseModelBytes,
         useIsolateInterpreter: useIsolateInterpreter,
+        useCompiledModel: useCompiledModel,
+        accelerators: accelerators,
+        precision: precision,
       );
     }
 
@@ -163,11 +169,37 @@ class CatDetectorCore {
         modelPath:
             'packages/cat_detection/assets/models/cat_face_localizer.tflite',
       );
-      await _localizer!.initializeFromBuffer(
-        localizerBytes,
-        performanceConfig,
-        useIsolateInterpreter: useIsolateInterpreter,
-      );
+      if (useCompiledModel) {
+        try {
+          await _localizer!.initCompiledFromBuffer(
+            localizerBytes,
+            accelerators: accelerators,
+            precision: precision,
+          );
+        } catch (error) {
+          debugPrint(
+            'Cat face localizer CompiledModel rejected; using Interpreter: '
+            '$error',
+          );
+          _localizer!.dispose();
+          _localizer = FaceLocalizerModel(
+            inputSize: 224,
+            modelPath:
+                'packages/cat_detection/assets/models/cat_face_localizer.tflite',
+          );
+          await _localizer!.initializeFromBuffer(
+            localizerBytes,
+            performanceConfig,
+            useIsolateInterpreter: useIsolateInterpreter,
+          );
+        }
+      } else {
+        await _localizer!.initializeFromBuffer(
+          localizerBytes,
+          performanceConfig,
+          useIsolateInterpreter: useIsolateInterpreter,
+        );
+      }
 
       _lm = LandmarkModelRunnerBase(
         inputSize: _landmarkInputSize,
@@ -176,11 +208,39 @@ class CatDetectorCore {
             'packages/cat_detection/assets/models/cat_face_landmarks_full.tflite',
         poolSize: interpreterPoolSize,
       );
-      await _lm!.initializeFromBuffer(
-        landmarkBytes,
-        effectiveLandmarkConfig,
-        useIsolateInterpreter: useIsolateInterpreter,
-      );
+      if (useCompiledModel) {
+        try {
+          await _lm!.initializeCompiledFromBuffer(
+            landmarkBytes,
+            accelerators: accelerators,
+            precision: precision,
+          );
+        } catch (error) {
+          debugPrint(
+            'Cat face landmarks CompiledModel rejected; using Interpreter: '
+            '$error',
+          );
+          _lm!.dispose();
+          _lm = LandmarkModelRunnerBase(
+            inputSize: _landmarkInputSize,
+            numLandmarks: numCatLandmarks,
+            modelPath:
+                'packages/cat_detection/assets/models/cat_face_landmarks_full.tflite',
+            poolSize: interpreterPoolSize,
+          );
+          await _lm!.initializeFromBuffer(
+            landmarkBytes,
+            effectiveLandmarkConfig,
+            useIsolateInterpreter: useIsolateInterpreter,
+          );
+        }
+      } else {
+        await _lm!.initializeFromBuffer(
+          landmarkBytes,
+          effectiveLandmarkConfig,
+          useIsolateInterpreter: useIsolateInterpreter,
+        );
+      }
     }
 
     _isInitialized = true;

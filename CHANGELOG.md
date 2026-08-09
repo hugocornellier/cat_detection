@@ -1,3 +1,23 @@
+## 3.0.0
+
+* Add opt-in LiteRT Next CompiledModel support to `CatDetector.initialize()`
+  and the new `CatDetector.create()`. `useCompiledModel` defaults to false;
+  `accelerators` defaults to GPU with CPU fallback and `precision` to fp32.
+* Route the selected backend through the worker isolate and every active stage:
+  animal body detection, species classification, body pose, face localization,
+  and face landmarks. Each compiled graph is numerically verified; unsafe
+  graphs retry on CPU or fall back only that stage to Interpreter.
+* Add a macOS full-pipeline parity integration test comparing body boxes and
+  scores, species, every pose point, the face box, and all 48 face landmarks in
+  Interpreter, CompiledModel CPU, and requested GPU+CPU modes.
+* Remove the deprecated `CatDetectorIsolate`. `CatDetector` has owned its
+  background isolate since 2.0.0 and is now the package's only detector class.
+* Require `animal_detection` ^3.0.0 and keep `flutter_litert` ^3.8.0.
+* Add `detectFromCameraFrame()` and `detectFromCameraImage()`, keeping camera
+  pixel conversion, rotation, downscaling, and inference in the detector
+  worker. The native example now matches the face, pose, and hand examples with
+  live camera, still image, and smoothed video-file demos.
+
 ## 2.1.0
 
 * **Default precision is now `Precision.fp32` instead of `fp16`.** This changes

@@ -10,7 +10,6 @@
 // - Result consistency / determinism
 // - Configuration parameters (cropMargin, PerformanceConfig)
 // - CatDetector isolate transport (detect, detectFromMat, re-init, concurrency)
-// - CatDetectorIsolate deprecated shim still delegating to CatDetector
 //
 // Run with:
 //   cd example && flutter test integration_test/
@@ -1149,52 +1148,6 @@ void main() {
         expect(results.length, batch.first.length);
       }
 
-      await detector.dispose();
-    });
-  });
-
-  // ---------------------------------------------------------------------------
-  // 9b. CatDetectorIsolate (deprecated shim)
-  //
-  // Kept until the class is removed, to prove the delegate still forwards to
-  // CatDetector and produces equivalent results.
-  // ---------------------------------------------------------------------------
-
-  group('CatDetectorIsolate (deprecated)', () {
-    testWidgets('deprecated shim still detects and matches CatDetector',
-        (tester) async {
-      // ignore: deprecated_member_use
-      final isolate = await CatDetectorIsolate.spawn(
-        mode: CatDetectionMode.full,
-      );
-      expect(isolate.isReady, true);
-
-      final detector = CatDetector(mode: CatDetectionMode.full);
-      await detector.initialize();
-
-      final ByteData data = await rootBundle.load(_catImagePath);
-      final Uint8List bytes = data.buffer.asUint8List();
-      final mat = cv.imdecode(bytes, cv.IMREAD_COLOR);
-
-      try {
-        // ignore: deprecated_member_use
-        final List<Cat> viaShim = await isolate.detectCats(bytes);
-        // ignore: deprecated_member_use
-        final List<Cat> viaShimMat = await isolate.detectCatsFromMat(mat);
-        final List<Cat> viaDetector = await detector.detect(bytes);
-
-        expect(viaShim, isNotEmpty);
-        expect(viaShim.length, viaDetector.length);
-        expect(viaShimMat.length, viaDetector.length);
-        expect(viaShim.first.face?.landmarks.length,
-            viaDetector.first.face?.landmarks.length);
-      } finally {
-        mat.dispose();
-      }
-
-      // ignore: deprecated_member_use
-      await isolate.dispose();
-      expect(isolate.isReady, false);
       await detector.dispose();
     });
   });

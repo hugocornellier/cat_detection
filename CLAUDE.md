@@ -12,15 +12,16 @@ A Flutter plugin (`cat_detection`) that runs a multi-stage on-device TFLite pipe
 4. **CatFaceLocalizer**, EfficientNetB2 regression model, letterbox 224×224 input, outputs normalized [x1,y1,x2,y2] face bbox. Trained on CatFLW dataset (2079 images, 48 landmarks). Val IoU: 81.5%.
 5. **CatLandmarkModel**, EfficientNetV2S + heatmap deconv head, 256×256 input, predicts 48 facial landmarks. Val NME-IOD: 3.72%.
 
-Stages 1-3 are delegated to the `animal_detection` package's `AnimalDetector`. Stages 4-5 are cat-specific and handled in this package.
+Stages 1-3 are delegated to the `animal_detection` package's
+`AnimalDetectorCore`. Stages 4-5 are cat-specific and handled in this package.
 
 ## Key Files
 
-- `lib/src/cat_detector.dart`, Main detector class. `_detectWithBody()` runs the full pipeline: animal detection → expand body bbox → crop → face localizer → offset to image coords → crop face → landmark model. Has `_expandBox()` helper matching the dog repo pattern.
+- `lib/src/cat_detector.dart`, Public detector and owned worker-isolate RPC.
+- `lib/src/isolate/cat_detector_core.dart`, In-worker five-stage pipeline.
 - `lib/src/models/cat_face_localizer.dart`, EfficientNetB2 face bbox regression. Handles letterbox/de-letterbox internally.
 - `lib/src/models/cat_landmark_model.dart`, Single-scale landmark model runner.
 - `lib/src/models/ensemble_landmark_model.dart`, Multi-scale ensemble (256+320+384px) landmark model.
-- `lib/src/isolate/cat_detector_isolate.dart`, Runs the full pipeline in a background isolate. Transfers all model bytes via `TransferableTypedData` for zero-copy. Loads localizer + landmark assets from `rootBundle` on main isolate, materializes them in worker isolate.
 - `lib/src/types.dart`, Data types (`Cat`, `CatFace`, `CatLandmark`, `BoundingBox`, enums).
 - `lib/src/util/image_utils.dart`, Crop/resize, letterbox, mat-to-float32 utilities.
 - `assets/models/`, TFLite model files (localizer + landmarks).
@@ -45,7 +46,8 @@ The face localizer stage was just integrated. Previously, `_detectWithBody()` us
 
 Changes made:
 - `cat_detector.dart`: `initialize()` creates localizer, `initializeFromBuffers()` accepts + validates `localizerBytes`, `_detectWithBody()` uses localizer, added `_expandBox()`
-- `cat_detector_isolate.dart`: `_IsolateStartupData` carries `localizerBytes`, `_initialize()` loads localizer from assets, `_isolateEntry()` materializes and passes it
+- `cat_detector.dart`: `_IsolateStartupData` carries model bytes,
+  `initialize()` loads assets, and `_isolateEntry()` materializes and passes them
 - `pubspec.yaml`: Added `cat_face_localizer.tflite` asset entry
 - Copied trained TFLite model to `assets/models/`
 
