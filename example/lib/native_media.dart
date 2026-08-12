@@ -6,6 +6,7 @@ import 'package:cat_detection/cat_detection.dart';
 import 'package:camera/camera.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_litert/flutter_litert.dart' show CoverFitTransform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:opencv_dart/opencv_dart.dart' as cv;
@@ -17,6 +18,187 @@ const Color _bodyColor = Color(0xFFFF9800);
 const Color _poseColor = Color(0xFF00E676);
 const int _cameraMaxDimension = 640;
 
+String formatInferenceMilliseconds(num microseconds) {
+  final milliseconds = microseconds / 1000;
+  if (milliseconds < 10) return milliseconds.toStringAsFixed(3);
+  if (milliseconds < 100) return milliseconds.toStringAsFixed(2);
+  if (milliseconds < 1000) return milliseconds.toStringAsFixed(1);
+  return milliseconds.toStringAsFixed(0);
+}
+
+class LiveInferenceStats {
+  int? _latestUs;
+  int _totalUs = 0;
+  int _sampleCount = 0;
+  int _generation = 0;
+
+  int? get latestUs => _latestUs;
+  int get sampleCount => _sampleCount;
+  double? get averageUs => _sampleCount == 0 ? null : _totalUs / _sampleCount;
+
+  int beginSample() => _generation;
+
+  bool record(int sampleGeneration, int elapsedUs) {
+    if (sampleGeneration != _generation) return false;
+    _latestUs = elapsedUs;
+    _totalUs += elapsedUs;
+    _sampleCount++;
+    return true;
+  }
+
+  void reset() {
+    _latestUs = null;
+    _totalUs = 0;
+    _sampleCount = 0;
+    _generation++;
+  }
+}
+
+class LiveCameraMetrics extends StatelessWidget {
+  final int fps;
+  final int? latestInferenceUs;
+  final double? averageInferenceUs;
+
+  const LiveCameraMetrics({
+    super.key,
+    required this.fps,
+    required this.latestInferenceUs,
+    required this.averageInferenceUs,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _FpsMetric(fps: fps),
+        const _MetricDivider(),
+        _InferenceMetric(label: 'LAST', microseconds: latestInferenceUs),
+        const _MetricDivider(),
+        _InferenceMetric(label: 'AVERAGE', microseconds: averageInferenceUs),
+      ],
+    );
+  }
+}
+
+class _FpsMetric extends StatelessWidget {
+  final int fps;
+
+  const _FpsMetric({required this.fps});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 44,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'FPS',
+            style: TextStyle(
+              color: Colors.white60,
+              fontSize: 9,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.7,
+            ),
+          ),
+          Text(
+            '$fps',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              fontFeatures: [FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InferenceMetric extends StatelessWidget {
+  final String label;
+  final num? microseconds;
+
+  const _InferenceMetric({
+    required this.label,
+    required this.microseconds,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final value =
+        microseconds == null ? '—' : formatInferenceMilliseconds(microseconds!);
+    return Semantics(
+      label: microseconds == null
+          ? '$label inference time unavailable'
+          : '$label inference time $value milliseconds',
+      child: SizedBox(
+        width: 74,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white60,
+                fontSize: 9,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.7,
+              ),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 46,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      value,
+                      maxLines: 1,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        fontFeatures: [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 3),
+                const SizedBox(
+                  width: 18,
+                  child: Text(
+                    'ms',
+                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MetricDivider extends StatelessWidget {
+  const _MetricDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: 24,
+      margin: const EdgeInsets.symmetric(horizontal: 5),
+      color: Colors.white24,
+    );
+  }
+}
+
 class LiveCameraScreen extends StatefulWidget {
   const LiveCameraScreen({super.key});
 
@@ -25,6 +207,8 @@ class LiveCameraScreen extends StatefulWidget {
 }
 
 class _LiveCameraScreenState extends State<LiveCameraScreen> {
+  static const double _mobileTopBarExtent = 84;
+
   CameraController? _cameraController;
   List<CameraDescription> _availableCameras = const [];
   CatDetector? _detector;
@@ -43,7 +227,11 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
   final FrameThrottle _throttle = FrameThrottle();
   final FpsCounter _fpsCounter = FpsCounter();
   int _fps = 0;
-  int _detectionTimeMs = 0;
+  final LiveInferenceStats _inferenceStats = LiveInferenceStats();
+
+  void _resetInferenceStats() {
+    _inferenceStats.reset();
+  }
 
   @override
   void initState() {
@@ -101,6 +289,7 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
     setState(() {
       _isInitialized = false;
       _useCompiledModel = !_useCompiledModel;
+      _resetInferenceStats();
     });
     try {
       await _reinitDetector();
@@ -115,6 +304,7 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
       _isInitialized = false;
       update();
       _cats = const [];
+      _resetInferenceStats();
     });
     try {
       await _reinitDetector();
@@ -190,6 +380,7 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
       _cameraController = null;
       _cats = const [];
       _imageSize = null;
+      _resetInferenceStats();
     });
     try {
       if (_streamStarted) {
@@ -218,7 +409,8 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
       final detector = _detector;
       if (detector == null || !_isInitialized || !mounted) return;
       try {
-        final started = DateTime.now();
+        final stopwatch = Stopwatch()..start();
+        final statsGeneration = _inferenceStats.beginSample();
         final sensor = _sensorOrientation;
         final rotation = sensor == null
             ? null
@@ -241,12 +433,13 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
           isBgra: Platform.isMacOS,
           maxDim: _cameraMaxDimension,
         );
+        stopwatch.stop();
+        final detectionTimeUs = stopwatch.elapsedMicroseconds;
+        _inferenceStats.record(statsGeneration, detectionTimeUs);
         if (mounted) {
           setState(() {
             _cats = cats;
             _imageSize = size;
-            _detectionTimeMs =
-                DateTime.now().difference(started).inMilliseconds;
           });
         }
       } catch (error) {
@@ -319,6 +512,8 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
   Widget _positionedTopBar(int turns) {
     final padding = MediaQuery.paddingOf(context);
     final bar = _cameraTopBar();
+    final mobile = !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+    final barExtent = mobile ? _mobileTopBarExtent : kToolbarHeight;
     if (turns == 0) {
       return Positioned(
         top: padding.top,
@@ -332,152 +527,166 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
       bottom: padding.bottom,
       left: turns == 3 ? padding.left : null,
       right: turns == 1 ? padding.right : null,
-      width: kToolbarHeight,
+      width: barExtent,
       child: RotatedBox(quarterTurns: turns, child: bar),
     );
   }
 
   Widget _cameraTopBar() {
+    final canPop = Navigator.of(context).canPop();
     final mobile = !kIsWeb && (Platform.isAndroid || Platform.isIOS);
-    final fps = SizedBox(
-      width: 70,
-      child: Text(
-        'FPS: $_fps',
-        textAlign: mobile ? TextAlign.left : TextAlign.right,
-        style: const TextStyle(color: Colors.white, fontSize: 14),
-      ),
+    final metrics = LiveCameraMetrics(
+      fps: _fps,
+      latestInferenceUs: _inferenceStats.latestUs,
+      averageInferenceUs: _inferenceStats.averageUs,
     );
-    final milliseconds = SizedBox(
-      width: 70,
-      child: Text(
-        '${_detectionTimeMs}ms',
-        style: const TextStyle(color: Colors.white, fontSize: 14),
+    final controls = <Widget>[
+      if (_canSwitchCamera)
+        IconButton(
+          tooltip: 'Switch camera',
+          color: Colors.white,
+          onPressed: _isSwitchingCamera ? null : _switchCamera,
+          icon: Icon(
+            Platform.isIOS ? Icons.flip_camera_ios : Icons.flip_camera_android,
+          ),
+        ),
+      TextButton(
+        onPressed: _isInitialized ? _toggleBackend : null,
+        style: TextButton.styleFrom(
+          minimumSize: const Size(92, 36),
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+        ),
+        child: Text(
+          _useCompiledModel ? 'CM' : 'Interpreter',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Colors.amberAccent,
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+          ),
+        ),
       ),
-    );
+      PopupMenuButton<void>(
+        tooltip: 'Settings',
+        icon: const Icon(Icons.settings, color: Colors.white),
+        color: Colors.blueGrey,
+        padding: EdgeInsets.zero,
+        itemBuilder: (context) => [
+          PopupMenuItem<void>(
+            enabled: false,
+            child: SizedBox(
+              width: 250,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<CatDetectionMode>(
+                    initialValue: _detectionMode,
+                    dropdownColor: Colors.blueGrey[800],
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText: 'Detection mode',
+                      labelStyle: TextStyle(color: Colors.white70),
+                    ),
+                    items: CatDetectionMode.values
+                        .map(
+                          (value) => DropdownMenuItem(
+                            value: value,
+                            child: Text(value.name),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        _updateDetector(() => _detectionMode = value);
+                      }
+                    },
+                  ),
+                  DropdownButtonFormField<AnimalPoseModel>(
+                    initialValue: _poseModel,
+                    dropdownColor: Colors.blueGrey[800],
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText: 'Pose model',
+                      labelStyle: TextStyle(color: Colors.white70),
+                    ),
+                    items: AnimalPoseModel.values
+                        .map(
+                          (value) => DropdownMenuItem(
+                            value: value,
+                            child: Text(value.name),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: _detectionMode != CatDetectionMode.faceOnly
+                        ? (value) {
+                            if (value != null) {
+                              _updateDetector(() => _poseModel = value);
+                            }
+                          }
+                        : null,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    ];
     return Material(
       color: Colors.black.withAlpha(179),
       elevation: 4,
       child: SizedBox(
-        height: kToolbarHeight,
-        child: Row(
-          children: [
-            IconButton(
-              tooltip: 'Back',
-              color: Colors.white,
-              onPressed: () => Navigator.maybePop(context),
-              icon: const Icon(Icons.arrow_back),
-            ),
-            if (mobile) ...[
-              fps,
-              const Text(' | ', style: TextStyle(color: Colors.white)),
-              milliseconds,
-              const Spacer(),
-            ] else
-              const Expanded(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8),
-                  child: Text(
-                    'Live Cat Detection',
-                    style: TextStyle(color: Colors.white, fontSize: 18),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ),
-            if (_canSwitchCamera)
-              IconButton(
-                tooltip: 'Switch camera',
-                color: Colors.white,
-                onPressed: _isSwitchingCamera ? null : _switchCamera,
-                icon: Icon(
-                  Platform.isIOS
-                      ? Icons.flip_camera_ios
-                      : Icons.flip_camera_android,
-                ),
-              ),
-            TextButton(
-              onPressed: _isInitialized ? _toggleBackend : null,
-              style: TextButton.styleFrom(minimumSize: const Size(92, 36)),
-              child: Text(
-                _useCompiledModel ? 'CM' : 'Interpreter',
-                style: const TextStyle(
-                  color: Colors.amberAccent,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            PopupMenuButton<void>(
-              tooltip: 'Settings',
-              icon: const Icon(Icons.settings, color: Colors.white),
-              color: Colors.blueGrey,
-              itemBuilder: (context) => [
-                PopupMenuItem<void>(
-                  enabled: false,
-                  child: SizedBox(
-                    width: 250,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        DropdownButtonFormField<CatDetectionMode>(
-                          initialValue: _detectionMode,
-                          dropdownColor: Colors.blueGrey[800],
-                          style: const TextStyle(color: Colors.white),
-                          decoration: const InputDecoration(
-                            labelText: 'Detection mode',
-                            labelStyle: TextStyle(color: Colors.white70),
-                          ),
-                          items: CatDetectionMode.values
-                              .map(
-                                (value) => DropdownMenuItem(
-                                  value: value,
-                                  child: Text(value.name),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (value) {
-                            if (value != null) {
-                              _updateDetector(
-                                () => _detectionMode = value,
-                              );
-                            }
-                          },
-                        ),
-                        DropdownButtonFormField<AnimalPoseModel>(
-                          initialValue: _poseModel,
-                          dropdownColor: Colors.blueGrey[800],
-                          style: const TextStyle(color: Colors.white),
-                          decoration: const InputDecoration(
-                            labelText: 'Pose model',
-                            labelStyle: TextStyle(color: Colors.white70),
-                          ),
-                          items: AnimalPoseModel.values
-                              .map(
-                                (value) => DropdownMenuItem(
-                                  value: value,
-                                  child: Text(value.name),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: _detectionMode != CatDetectionMode.faceOnly
-                              ? (value) {
-                                  if (value != null) {
-                                    _updateDetector(() => _poseModel = value);
-                                  }
-                                }
-                              : null,
-                        ),
-                      ],
+        height: mobile ? _mobileTopBarExtent : kToolbarHeight,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: mobile
+              ? Column(
+                  children: [
+                    SizedBox(
+                      height: 48,
+                      child: Row(
+                        children: [
+                          if (canPop)
+                            IconButton(
+                              tooltip: 'Back',
+                              color: Colors.white,
+                              onPressed: () => Navigator.maybePop(context),
+                              icon: const Icon(Icons.arrow_back),
+                            ),
+                          const Spacer(),
+                          ...controls,
+                        ],
+                      ),
                     ),
-                  ),
+                    const Divider(height: 1, color: Colors.white12),
+                    SizedBox(height: 35, child: Center(child: metrics)),
+                  ],
+                )
+              : Row(
+                  children: [
+                    if (canPop)
+                      IconButton(
+                        tooltip: 'Back',
+                        color: Colors.white,
+                        onPressed: () => Navigator.maybePop(context),
+                        icon: const Icon(Icons.arrow_back),
+                      ),
+                    const Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        child: Text(
+                          'Live Cat Detection',
+                          style: TextStyle(color: Colors.white, fontSize: 18),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                    ...controls,
+                    const SizedBox(width: 8),
+                    metrics,
+                  ],
                 ),
-              ],
-            ),
-            if (!mobile) ...[
-              fps,
-              const Text(' | ', style: TextStyle(color: Colors.white)),
-              milliseconds,
-              const SizedBox(width: 8),
-            ],
-          ],
         ),
       ),
     );
@@ -498,13 +707,13 @@ class _CatPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (imageSize.isEmpty) return;
-    canvas.save();
-    if (mirrorHorizontally) {
-      canvas.translate(size.width, 0);
-      canvas.scale(-1, 1);
-    }
-    final scaleX = size.width / imageSize.width;
-    final scaleY = size.height / imageSize.height;
+    final t = CoverFitTransform.cover(
+      sourceWidth: imageSize.width,
+      sourceHeight: imageSize.height,
+      viewWidth: size.width,
+      viewHeight: size.height,
+      mirror: mirrorHorizontally,
+    );
     final bodyPaint = Paint()
       ..color = _bodyColor
       ..style = PaintingStyle.stroke
@@ -515,13 +724,16 @@ class _CatPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
     for (final cat in cats) {
       final box = cat.boundingBox;
+      final p1 = t.map(box.left, box.top);
+      final p2 = t.map(box.right, box.bottom);
+      final rect = Rect.fromLTRB(
+        math.min(p1.dx, p2.dx),
+        math.min(p1.dy, p2.dy),
+        math.max(p1.dx, p2.dx),
+        math.max(p1.dy, p2.dy),
+      );
       canvas.drawRect(
-        Rect.fromLTRB(
-          box.left * scaleX,
-          box.top * scaleY,
-          box.right * scaleX,
-          box.bottom * scaleY,
-        ),
+        rect,
         bodyPaint,
       );
       final pose = cat.pose;
@@ -536,15 +748,15 @@ class _CatPainter extends CustomPainter {
             continue;
           }
           canvas.drawLine(
-            Offset(a.x * scaleX, a.y * scaleY),
-            Offset(b.x * scaleX, b.y * scaleY),
+            t.map(a.x, a.y),
+            t.map(b.x, b.y),
             posePaint,
           );
         }
         for (final landmark in pose.landmarks) {
           if (landmark.confidence >= 0.3) {
             canvas.drawCircle(
-              Offset(landmark.x * scaleX, landmark.y * scaleY),
+              t.map(landmark.x, landmark.y),
               3,
               posePaint,
             );
@@ -558,12 +770,14 @@ class _CatPainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2;
         final faceBox = face.boundingBox;
+        final faceP1 = t.map(faceBox.left, faceBox.top);
+        final faceP2 = t.map(faceBox.right, faceBox.bottom);
         canvas.drawRect(
           Rect.fromLTRB(
-            faceBox.left * scaleX,
-            faceBox.top * scaleY,
-            faceBox.right * scaleX,
-            faceBox.bottom * scaleY,
+            math.min(faceP1.dx, faceP2.dx),
+            math.min(faceP1.dy, faceP2.dy),
+            math.max(faceP1.dx, faceP2.dx),
+            math.max(faceP1.dy, faceP2.dy),
           ),
           facePaint,
         );
@@ -572,25 +786,24 @@ class _CatPainter extends CustomPainter {
           final b = face.getLandmark(connection[1]);
           if (a == null || b == null) continue;
           canvas.drawLine(
-            Offset(a.x * scaleX, a.y * scaleY),
-            Offset(b.x * scaleX, b.y * scaleY),
+            t.map(a.x, a.y),
+            t.map(b.x, b.y),
             facePaint,
           );
         }
         for (final landmark in face.landmarks) {
           canvas.drawCircle(
-            Offset(landmark.x * scaleX, landmark.y * scaleY),
+            t.map(landmark.x, landmark.y),
             2,
             facePaint,
           );
         }
       }
-      _paintLabel(canvas, cat, scaleX, scaleY);
+      _paintLabel(canvas, cat, rect);
     }
-    canvas.restore();
   }
 
-  void _paintLabel(Canvas canvas, Cat cat, double scaleX, double scaleY) {
+  void _paintLabel(Canvas canvas, Cat cat, Rect boundingBox) {
     final species = cat.species ?? 'Cat';
     final confidence = (cat.score * 100).toStringAsFixed(0);
     final painter = TextPainter(
@@ -604,10 +817,10 @@ class _CatPainter extends CustomPainter {
       ),
       textDirection: TextDirection.ltr,
     )..layout();
-    final left = cat.boundingBox.left * scaleX;
+    final left = boundingBox.left;
     final top = math.max(
       0.0,
-      cat.boundingBox.top * scaleY - painter.height - 6,
+      boundingBox.top - painter.height - 6,
     );
     canvas.drawRect(
       Rect.fromLTWH(left, top, painter.width + 8, painter.height + 6),

@@ -1,3 +1,48 @@
+## 3.0.1
+
+* **Re-exported both face models with static shapes so GPU backends can run
+  them.** Trained weights are unchanged; only the export path changed. The
+  previous models were converted with `from_keras_model`, which leaves the
+  batch dimension dynamic and emits SHAPE / STRIDED_SLICE / PACK in the graph
+  tail. Every GPU backend refuses a graph with dynamic-sized tensors, so both
+  stages ran on CPU on every platform, and switching between Interpreter and
+  CompiledModel changed nothing because both fell back to the same CPU path.
+  Converting from a batch-1 concrete function removes those ops
+  (cat_face_localizer 689 to 592 ops, cat_face_landmarks_full 295 to 283).
+  The landmark model additionally has its deconv ReLU moved out of
+  TRANSPOSE_CONV into a separate RELU op, dropping the opcode from version 4
+  to 3, which is what lets CompiledModel's GPU accelerator claim the head.
+* Output parity against the 3.0.0 models is 3.99e-06 (localizer) and 4.17e-07
+  (landmarks), so detection quality is unchanged.
+* **`useCompiledModel` now defaults to true.** The re-exported graphs are
+  accepted by CompiledModel with the default `{gpu, cpu}` accelerator set,
+  which is the fastest configuration measured on every Apple platform. The
+  existing per-stage try/catch still falls back to the Interpreter if
+  CompiledModel construction fails.
+* **The landmark stage now defaults to the GPU delegate instead of auto.**
+  XNNPACK claims the deconv region with a kernel slower than TFLite's built-in
+  ruy one, so on the re-exported graph XNNPACK is slower than bare CPU. Auto
+  resolves to XNNPACK on Android, macOS, Linux and Windows, so leaving it on
+  auto would have made the landmark stage slower than 3.0.0. Pass
+  `landmarkPerformanceConfig` to override. Platforms with no GPU delegate fall
+  through to bare CPU, which measures the same as 3.0.0 on this graph.
+* Require `animal_detection` ^3.0.1, which ships its live-camera APIs and
+  updated native example and restores complete pub.dev package analysis.
+* Measured on macOS M4 Max, flutter_litert 3.9.0, 25 iterations after 8 warmup,
+  median of `sync_p50_ms`:
+
+  | stage | 3.0.0 best | 3.0.1 best |
+  | --- | --- | --- |
+  | localizer | 8.11 ms (XNNPACK) | 1.70 ms (CompiledModel {gpu, cpu}) |
+  | landmarks | 27.10 ms (XNNPACK) | 3.82 ms (CompiledModel {gpu, cpu}) |
+
+  Measured on iPhone 15 Pro, iOS 26.5, same protocol:
+
+  | stage | 3.0.0 best | 3.0.1 best |
+  | --- | --- | --- |
+  | localizer | 15.80 ms | 3.05 ms |
+  | landmarks | 47.48 ms | 11.66 ms |
+
 ## 3.0.0
 
 * Add opt-in LiteRT Next CompiledModel support to `CatDetector.initialize()`
