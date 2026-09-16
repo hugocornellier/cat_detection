@@ -6,7 +6,7 @@
 <br>
 <a href="https://pub.dev/packages/cat_detection"><img src="https://img.shields.io/pub/v/cat_detection?label=pub.dev&labelColor=333940&logo=dart" alt="Pub Version"></a>
 <a href="https://pub.dev/packages/cat_detection/score"><img src="https://img.shields.io/pub/points/cat_detection?color=2E8B57&label=pub%20points" alt="pub points"></a>
-<a href="https://github.com/hugocornellier/cat_detection/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-007A88.svg?logo=apache" alt="License"></a>
+<a href="https://github.com/hugocornellier/cat_detection/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-007A88.svg" alt="License"></a>
 </p>
 
 ![Demo](assets/screenshots/cat_detection_demo.png)
@@ -256,7 +256,32 @@ For lower-level integrations, use `prepareCameraFrame(...)` followed by
 
 ## Credits
 
-Models trained on the [CatFLW dataset](https://github.com/catflw/catflw).
+Models trained on the [CatFLW dataset](https://github.com/martvelge/CatFLW) by
+Martvel et al., Tech4Animals Lab, University of Haifa.
+
+CatFLW is licensed
+[CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/). The dataset
+itself is not redistributed here; obtain it from
+[Kaggle](https://www.kaggle.com/datasets/georgemartvel/catflw) under its own
+terms.
+
+```bibtex
+@article{martvel2023catflw,
+  title={Catflw: Cat facial landmarks in the wild dataset},
+  author={Martvel, George and Farhat, Nareed and Shimshoni, Ilan and Zamansky, Anna},
+  journal={arXiv preprint arXiv:2305.04232},
+  year={2023}
+}
+
+@article{martvel2024automated,
+  title={Automated Detection of Cat Facial Landmarks},
+  author={Martvel, George and Shimshoni, Ilan and Zamansky, Anna},
+  journal={International Journal of Computer Vision},
+  pages={1--16},
+  year={2024},
+  publisher={Springer}
+}
+```
 
 ## Example
 
