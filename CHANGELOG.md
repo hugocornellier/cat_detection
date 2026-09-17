@@ -1,3 +1,71 @@
+## 4.0.0
+
+* **Detections that are not cats are now dropped instead of returned.** In `full`
+  and `poseOnly` modes the species classifier's label is checked before a
+  [Cat] is emitted. Previously every animal the body detector found was
+  returned as a `Cat`, with cat face landmarks run on it, whatever the
+  classifier said. A `Cat` that is not a cat breaks the guarantee its own type
+  makes, so these are now filtered out. Callers who want every animal
+  regardless of species should use `animal_detection` directly.
+* **This is a behaviour change.** Code that counted on receiving one result per
+  detected animal will see fewer results. Nothing else about the returned data
+  changed.
+* **Near-miss classes are recovered rather than lost.** The package now ships its
+  own `species_mapping.json` rather than reading `animal_detection`'s. It maps
+  the domestic block (ImageNet 281-285) plus a `wildcat` block
+  (286-287: cougar, lynx), whose members are most often a domestic
+  cat the classifier placed on a neighbouring class. Those are returned as
+  `species: 'cat'`. Every other class resolves to `unknown_animal` and is
+  dropped, which includes the clothing and object classes a person is most
+  likely to be assigned.
+* **`breed` is now null for the near-miss block.** The animal is still returned,
+  but the label is withheld rather than naming an animal it probably is not.
+  `breed` was already null when classification did not run; this adds a third
+  case. See the dartdoc on [Cat.breed].
+* Deliberately excluded: the big cats (288-293). The face
+  landmark model never saw them and, being a regressor with no confidence
+  output, would emit confident but meaningless landmarks with no signal that
+  anything was wrong.
+* Added `minSpeciesConfidence`, an optional second filter on classifier
+  confidence. Defaults to `0.0`, meaning off. It is not comparable with
+  dog_detection's value: the classifier is a 1000-class ImageNet model and this
+  is one class's softmax probability, so mass splits across the 7 classes a
+  cat occupies versus a different count for a dog. Tune it against your own
+  imagery.
+* `faceOnly` mode is unchanged. It runs no body detector and no classifier, so
+  no species exists to gate on, and the caller has already asserted the subject.
+* **Fixed: a cropped `cv.Mat` passed to `detectFromMat` returned no detections.**
+  `Mat.data` ignores row stride, so a non-continuous Mat, which is what
+  `mat.region(...)` returns, was read as though its rows were tightly packed
+  and arrived scrambled. Passing a cropped view produced zero detections or
+  nonsense labels; the same crop with `.clone()` worked. Non-continuous input
+  is now packed automatically, so no `.clone()` is needed at the call site.
+  `face_detection_tflite`, `pose_detection` and `hand_detection` already
+  guarded against this; this brings the remaining packages in line.
+* **The bundled model files are now explicitly CC BY-NC 4.0, non-commercial
+  use only.** The Dart source code remains MIT and is unchanged. Only the
+  licensing statement changed: nothing about the weights themselves is
+  different from 3.0.1, and this does not retroactively grant or remove any
+  right. It records the position accurately for the first time.
+  `assets/models/cat_face_landmarks_full.tflite` and
+  `assets/models/cat_face_localizer.tflite` are trained on CatFLW, which is
+  CC BY-NC 4.0. The dataset's authors were asked directly how they wanted
+  derived weights licensed, asked for CC BY-NC 4.0 to stay consistent with the
+  source data, and granted permission to publish them on that basis. Using this
+  package in a commercial product runs those weights, which that license does
+  not permit; for commercial use, contact the dataset authors at the
+  Tech4Animals Lab, University of Haifa. See the new `NOTICE` file.
+* **Requires `animal_detection` 4.0.0**, which documents its own bundled
+  SuperAnimal body-detection and pose models as academic/non-commercial only
+  and non-transferable. That restriction is independent of the one above: it
+  comes from the Mathis Laboratory's checkpoints rather than from CatFLW.
+  In practice the whole pipeline is non-commercial, by two separate routes, and
+  clearing one would not clear the other.
+* The weights are now published on their own at
+  https://huggingface.co/hugocornellier/cat-face-landmarks, alongside a higher-accuracy
+  variant better suited to server-side use, and the training code is public at
+  https://github.com/hugocornellier/cat-face-landmarks-training.
+
 ## 3.0.1
 
 * **Re-exported both face models with static shapes so GPU backends can run

@@ -1,0 +1,44 @@
+cat_detection
+Copyright 2026 Hugo Cornellier
+
+This package is licensed under the MIT License. See LICENSE.
+
+THE BUNDLED MODEL FILES ARE AN EXCEPTION TO THAT LICENSE.
+
+These files are not covered by the MIT license:
+
+    assets/models/cat_face_landmarks_full.tflite
+    assets/models/cat_face_localizer.tflite
+
+They are trained model weights, licensed under Creative Commons
+Attribution-NonCommercial 4.0 International (CC BY-NC 4.0):
+
+    https://creativecommons.org/licenses/by-nc/4.0/
+
+NON-COMMERCIAL USE ONLY.
+
+Using this package in a commercial product means running these weights, which
+this license does not permit. The Dart source code remains MIT and may be
+used commercially with model weights you supply yourself.
+
+WHY
+
+The weights were trained on the CatFLW dataset, which is licensed CC BY-NC 4.0 by
+its authors (Martvel et al., Tech4Animals Lab, University of Haifa). The authors
+were asked directly how they wanted weights derived from their annotations to be
+licensed. They asked for CC BY-NC 4.0, to remain consistent with the
+non-commercial terms of the source data, and granted permission to publish the
+weights on that basis.
+
+Commercial permission is not the package author's alone to give. For commercial
+use, contact the dataset authors at the Tech4Animals Lab, University of Haifa.
+
+ATTRIBUTION
+
+Any use or redistribution of these weights must retain this notice and cite the
+CatFLW papers. The citations are in README.md, under Credits.
+
+    Dataset:      https://github.com/martvelge/CatFLW
+    Kaggle:       https://www.kaggle.com/datasets/georgemartvel/catflw
+    Weights:      https://huggingface.co/hugocornellier/cat-face-landmarks
+    Training code: https://github.com/hugocornellier/cat-face-landmarks-training

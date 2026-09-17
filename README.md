@@ -33,7 +33,8 @@ await detector.initialize();
 final cats = await detector.detect(imageBytes);
 for (final cat in cats) {
   print('${cat.species} at ${cat.boundingBox}');
-  print('Breed: ${cat.breed} (${(cat.speciesConfidence! * 100).toStringAsFixed(0)}%)');
+  // breed is null when the classifier landed on a near-miss class
+  if (cat.breed != null) print('Breed: ${cat.breed}');
   print('Pose keypoints: ${cat.pose?.landmarks.length}');
   print('Face landmarks: ${cat.face?.landmarks.length}');
 }
@@ -70,9 +71,43 @@ for (final landmark in face.landmarks) {
 }
 ```
 
+## Species Filtering
+
+Only cats are returned. In `full` and `poseOnly` modes the species classifier's
+label is checked before a result is emitted, and any animal identified as
+something else is dropped. A `Cat` that is not a cat would break the guarantee
+its own type makes, so an image containing other animals yields only the cats.
+
+If you want every animal regardless of species, use
+[animal_detection](https://pub.dev/packages/animal_detection) directly. It is
+already a dependency of this package.
+
+`minSpeciesConfidence` adds an optional second filter on classifier confidence:
+
+```dart
+final detector = CatDetector(minSpeciesConfidence: 0.35);
+```
+
+It defaults to `0.0`, meaning off, and is worth raising if you see confident
+misidentifications. People are the common case, because the underlying
+1000-class ImageNet classifier has no person category and must assign every crop
+to some animal or object class. Note the value is not comparable with the
+sibling package's: it is one class's softmax probability, and probability mass
+splits across however many classes a species occupies.
+
+`faceOnly` mode is unaffected. It runs no classifier, so there is no species to
+check, and the caller has already asserted the subject.
+
 ## Breed Identification
 
-In `full` and `poseOnly` modes, each detected cat includes a predicted breed label and confidence score from the species classifier.
+In `full` and `poseOnly` modes, each detected cat may include a predicted breed
+label and confidence score from the species classifier.
+
+`breed` is null when no breed is known: in `faceOnly` mode, which runs no
+classifier, or when the classifier's top class fell in the near-miss block
+(cougar or lynx). Those are still returned as cats, since the likeliest explanation is a
+domestic cat placed on a neighbouring class, but the label is withheld rather
+than naming an animal the subject probably is not. Always null-check it.
 
 ```dart
 final cats = await detector.detect(imageBytes);
@@ -282,6 +317,38 @@ terms.
   publisher={Springer}
 }
 ```
+
+## Weights and training code
+
+The models in this package are published separately, with the full training
+pipeline that produced them:
+
+- **Weights:** [huggingface.co/hugocornellier/cat-face-landmarks](https://huggingface.co/hugocornellier/cat-face-landmarks)
+  also carries a higher-accuracy variant (3.27 NME_IOD against 3.48 for the
+  bundled one) that is too slow for phones but better suited to server-side use.
+- **Training code and experiment journal:**
+  [github.com/hugocornellier/cat-face-landmarks-training](https://github.com/hugocornellier/cat-face-landmarks-training)
+
+## License
+
+The Dart source code is **MIT**; see [`LICENSE`](LICENSE).
+
+**The bundled model files are an exception.**
+`assets/models/cat_face_landmarks_full.tflite` and
+`assets/models/cat_face_localizer.tflite` are licensed
+[**CC BY-NC 4.0**](https://creativecommons.org/licenses/by-nc/4.0/),
+**non-commercial use only**. See [`NOTICE`](NOTICE).
+
+This means using this package in a commercial product is not something this
+license permits, because doing so runs those weights. The Dart code stays
+MIT and can be used commercially with weights you supply yourself.
+
+The reason is that the weights are trained on CatFLW, which is CC BY-NC 4.0. Its
+authors were asked directly how they wanted derived weights licensed, asked for
+CC BY-NC 4.0 to stay consistent with the dataset, and granted permission to
+publish on that basis. Commercial permission is not this package author's alone
+to give: for that, contact the dataset authors at the Tech4Animals Lab,
+University of Haifa.
 
 ## Example
 

@@ -41,12 +41,14 @@ class _IsolateStartupData {
   // a thread count, the same way the pipeline-wide config does.
   final String? landmarkPerformanceModeName;
   final int? landmarkNumThreads;
+  final double minSpeciesConfidence;
   final bool useCompiledModel;
   final List<int> acceleratorIndices;
   final int precisionIndex;
 
   const _IsolateStartupData({
     required this.sendPort,
+    this.minSpeciesConfidence = 0.0,
     this.localizerBytes,
     this.landmarkBytes,
     this.bodyDetectorBytes,
@@ -171,6 +173,23 @@ class CatDetector {
   /// before setting this in production.
   final PerformanceConfig? landmarkPerformanceConfig;
 
+  /// Minimum species-classifier confidence a detection must reach to be
+  /// returned, in `full` and `poseOnly` modes. `0.0`, the default, disables it.
+  ///
+  /// This is a second, optional filter on top of the species gate, which always
+  /// applies: a detection whose species is not a cat is dropped regardless of
+  /// this value. Raise it when the classifier is confidently wrong rather than
+  /// merely wrong, which most often happens on people, since the underlying
+  /// 1000-class ImageNet model has no person category and must assign every
+  /// crop to some animal or object class.
+  ///
+  /// Not comparable with the sibling dog_detection package's value: this is a
+  /// single class's softmax probability, and probability mass splits across the
+  /// classes a species occupies. Tune it against your own imagery.
+  ///
+  /// Has no effect in `faceOnly` mode, which never runs the classifier.
+  final double minSpeciesConfidence;
+
   _CatDetectorWorker? _worker;
 
   /// Creates and initializes a cat detector in one step.
@@ -183,6 +202,7 @@ class CatDetector {
     int interpreterPoolSize = 1,
     PerformanceConfig performanceConfig = const PerformanceConfig(),
     PerformanceConfig? landmarkPerformanceConfig,
+    double minSpeciesConfidence = 0.0,
     void Function(String model, int received, int total)? onDownloadProgress,
     bool useCompiledModel = true,
     Set<Accelerator> accelerators = const {
@@ -200,6 +220,7 @@ class CatDetector {
       interpreterPoolSize: interpreterPoolSize,
       performanceConfig: performanceConfig,
       landmarkPerformanceConfig: landmarkPerformanceConfig,
+      minSpeciesConfidence: minSpeciesConfidence,
     );
     await detector.initialize(
       onDownloadProgress: onDownloadProgress,
@@ -220,6 +241,7 @@ class CatDetector {
     this.interpreterPoolSize = 1,
     this.performanceConfig = const PerformanceConfig(),
     this.landmarkPerformanceConfig,
+    this.minSpeciesConfidence = 0.0,
   });
 
   /// Returns true if the detector has been initialized and is ready to use.
@@ -300,8 +322,11 @@ class CatDetector {
           'packages/animal_detection/assets/models/superanimal_ssdlite_float16.tflite';
       const classifierPath =
           'packages/animal_detection/assets/models/species_classifier_float16.tflite';
+      // Package-local rather than animal_detection's: this mapping maps only
+      // the cat block and the near-miss block, so every other ImageNet
+      // class resolves to `unknown_animal` and is dropped by the species gate.
       const speciesMappingPath =
-          'packages/animal_detection/assets/models/species_mapping.json';
+          'packages/cat_detection/assets/models/species_mapping.json';
 
       final bodyResults = await Future.wait([
         rootBundle.load(bodyDetectorPath),
@@ -362,6 +387,7 @@ class CatDetector {
           numThreads: performanceConfig.numThreads,
           landmarkPerformanceModeName: landmarkPerformanceConfig?.mode.name,
           landmarkNumThreads: landmarkPerformanceConfig?.numThreads,
+          minSpeciesConfidence: minSpeciesConfidence,
           useCompiledModel: useCompiledModel,
           acceleratorIndices: accelerators.map((a) => a.index).toList(),
           precisionIndex: precision.index,
@@ -399,21 +425,33 @@ class CatDetector {
   /// need to be passed when they differ.
   ///
   /// Throws [StateError] if called before [initialize].
+  ///
+  /// Accepts a non-continuous Mat, such as the view `mat.region(...)` returns.
+  /// `Mat.data` ignores row stride, so such a Mat is packed into a continuous
+  /// copy before its bytes are read; passing a cropped view is safe and needs
+  /// no `.clone()` at the call site. The supplied Mat is left untouched.
+  ///
   Future<List<Cat>> detectFromMat(
     cv.Mat image, {
     int? imageWidth,
     int? imageHeight,
   }) async {
     final worker = _requireWorker();
+    // Mat.data ignores row stride, so a non-continuous Mat (e.g. an ROI view
+    // from region()) would ship scrambled pixels. Pack it into a continuous
+    // copy first; TransferableTypedData.fromList copies the bytes
+    // synchronously, so the clone can be disposed immediately after.
+    final cv.Mat src = image.isContinuous ? image : image.clone();
     final result = await worker.sendRequest<List<dynamic>>(
       'detectMat',
       {
-        'bytes': TransferableTypedData.fromList([image.data]),
-        'width': imageWidth ?? image.cols,
-        'height': imageHeight ?? image.rows,
-        'matType': image.type.value,
+        'bytes': TransferableTypedData.fromList([src.data]),
+        'width': imageWidth ?? src.cols,
+        'height': imageHeight ?? src.rows,
+        'matType': src.type.value,
       },
     );
+    if (!identical(src, image)) src.dispose();
     return _deserializeCats(result);
   }
 
@@ -538,6 +576,7 @@ class CatDetector {
           mode: performanceMode,
           numThreads: data.numThreads,
         ),
+        minSpeciesConfidence: data.minSpeciesConfidence,
         landmarkPerformanceConfig: landmarkMode == null
             ? null
             : PerformanceConfig(

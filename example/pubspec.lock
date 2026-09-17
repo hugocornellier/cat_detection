@@ -5,10 +5,10 @@ packages:
     dependency: transitive
     description:
       name: animal_detection
-      sha256: "437b85a43a8d73c7dafa768124ba934ba84c53322bfa35d7b9ac80ea796e766e"
+      sha256: "5f5dbdc62da53a2cbb5ba1223cd08ab0ed242a0c46736443d58b51b32c9d4950"
       url: "https://pub.dev"
     source: hosted
-    version: "3.0.1"
+    version: "4.0.0"
   args:
     dependency: transitive
     description:
@@ -87,7 +87,7 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "3.0.1"
+    version: "4.0.0"
   change_case:
     dependency: transitive
     description:

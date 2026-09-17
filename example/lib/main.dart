@@ -970,9 +970,16 @@ class CatOverlayPainter extends CustomPainter {
     final double x1 = cat.boundingBox.left * scaleX + offsetX;
     final double y1 = cat.boundingBox.top * scaleY + offsetY;
 
-    final String breedInfo = cat.breed != null && cat.speciesConfidence != null
-        ? ' (${cat.breed}, ${(cat.speciesConfidence! * 100).toStringAsFixed(0)}%)'
-        : '';
+    // breed is null when the classifier landed on a near-miss class, so show
+    // the confidence on its own rather than dropping it along with the label.
+    final String? confidence = cat.speciesConfidence == null
+        ? null
+        : '${(cat.speciesConfidence! * 100).toStringAsFixed(0)}%';
+    final List<String> parts = [
+      if (cat.breed != null) cat.breed!,
+      if (confidence != null) confidence,
+    ];
+    final String breedInfo = parts.isEmpty ? '' : ' (${parts.join(', ')})';
     final String label = '${cat.species}$breedInfo';
     final TextPainter textPainter = TextPainter(
       text: TextSpan(
