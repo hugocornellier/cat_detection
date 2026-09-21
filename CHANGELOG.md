@@ -55,7 +55,7 @@
   package in a commercial product runs those weights, which that license does
   not permit; for commercial use, contact the dataset authors at the
   Tech4Animals Lab, University of Haifa. See the new `NOTICE` file.
-* **Requires `animal_detection` 4.0.0**, which documents its own bundled
+* **Requires `animal_detection` 4.1.0**, which documents its own bundled
   SuperAnimal body-detection and pose models as academic/non-commercial only
   and non-transferable. That restriction is independent of the one above: it
   comes from the Mathis Laboratory's checkpoints rather than from CatFLW.
@@ -65,6 +65,30 @@
   https://huggingface.co/hugocornellier/cat-face-landmarks, alongside a higher-accuracy
   variant better suited to server-side use, and the training code is public at
   https://github.com/hugocornellier/cat-face-landmarks-training.
+* Depend on `flutter_litert ^3.9.0`, `opencv_dart ^2.2.2`, and
+  `dartcv4 ^2.3.1`. The direct `dartcv4` constraint exists only so resolution
+  can never keep a `dartcv4` release whose iOS CMake hook hardcodes a 12.0
+  deployment target, which Xcode 27 rejects; no Dart source imports it.
+* Raise the floors to Dart 3.10 and Flutter 3.47.5. Earlier Flutter releases
+  pin `meta 1.18.0` through `flutter_test`, which cannot coexist with
+  `dartcv4 2.3.1`.
+* Building for iOS with Xcode 27 needs an iOS 15 deployment target. Set the
+  Runner target (and `platform :ios` in the Podfile) to 15.0 or newer and add
+  this to the app's `pubspec.yaml`; hook user-defines are only honoured from
+  the root package, so a dependency cannot supply it for you:
+
+  ```yaml
+  hooks:
+    user_defines:
+      dartcv4:
+        ios:
+          deployment_target: '15.0'
+  ```
+
+  Run `flutter clean` afterwards so the cached OpenCV build is regenerated.
+* Remove the unused direct `meta` dependency.
+* Verified with the hosted `animal_detection 4.1.0` and `flutter_litert 3.9.0`
+  on macOS 27, Xcode 27, and the iOS 27 simulator.
 
 ## 3.0.1
 
