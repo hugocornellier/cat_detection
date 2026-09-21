@@ -15,9 +15,11 @@ void main() {
   late List<dynamic> names;
 
   setUpAll(() {
-    mapping = jsonDecode(
-      File('assets/models/species_mapping.json').readAsStringSync(),
-    ) as Map<String, dynamic>;
+    mapping =
+        jsonDecode(
+              File('assets/models/species_mapping.json').readAsStringSync(),
+            )
+            as Map<String, dynamic>;
     species = mapping['species'] as Map<String, dynamic>;
     names = mapping['imagenet_names'] as List<dynamic>;
   });

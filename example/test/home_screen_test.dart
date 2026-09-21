@@ -3,8 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:cat_detection_example/main.dart';
 
 void main() {
-  testWidgets('home exposes live, still-image, and video demos',
-      (tester) async {
+  testWidgets('home exposes live, still-image, and video demos', (
+    tester,
+  ) async {
     await tester.pumpWidget(const CatDetectionApp());
 
     expect(find.text('Choose a Demo'), findsOneWidget);

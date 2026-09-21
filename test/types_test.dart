@@ -12,7 +12,9 @@ void main() {
       // drifted to 1.0.5 while the package shipped 1.4.0.
       expect(CatDetector.modelVersion, startsWith('cat_detection:'));
       expect(
-          CatDetector.modelVersion, matches(r'^cat_detection:\d+\.\d+\.\d+:'));
+        CatDetector.modelVersion,
+        matches(r'^cat_detection:\d+\.\d+\.\d+:'),
+      );
       expect(CatDetector.modelVersion, CatDetector.modelVersionFor());
     });
 
@@ -711,8 +713,11 @@ void main() {
   // CatFace class
   // ---------------------------------------------------------------------------
   group('CatFace', () {
-    CatLandmark makeLandmark(CatLandmarkType type,
-        {double x = 0, double y = 0}) {
+    CatLandmark makeLandmark(
+      CatLandmarkType type, {
+      double x = 0,
+      double y = 0,
+    }) {
       return CatLandmark(type: type, x: x, y: y);
     }
 
@@ -795,7 +800,7 @@ void main() {
           'left': 5.0,
           'top': 10.0,
           'right': 200.0,
-          'bottom': 300.0
+          'bottom': 300.0,
         },
         'landmarks': [
           {'type': 'muzzleCenter', 'x': 100.0, 'y': 150.0},
@@ -825,7 +830,7 @@ void main() {
           'left': 0.0,
           'top': 0.0,
           'right': 100.0,
-          'bottom': 100.0
+          'bottom': 100.0,
         },
         'landmarks': [],
       };
@@ -835,8 +840,13 @@ void main() {
 
     test('toMap/fromMap round-trip with all 48 landmarks', () {
       final allLandmarks = CatLandmarkType.values
-          .map((type) =>
-              CatLandmark(type: type, x: type.index * 2.0, y: type.index * 3.0))
+          .map(
+            (type) => CatLandmark(
+              type: type,
+              x: type.index * 2.0,
+              y: type.index * 3.0,
+            ),
+          )
           .toList();
       final original = CatFace(
         boundingBox: BoundingBox.ltrb(0, 0, 400, 300),
@@ -889,8 +899,11 @@ void main() {
     });
 
     test('edge case: single landmark', () {
-      final landmark =
-          makeLandmark(CatLandmarkType.mouthCornerRight, x: 55.0, y: 77.0);
+      final landmark = makeLandmark(
+        CatLandmarkType.mouthCornerRight,
+        x: 55.0,
+        y: 77.0,
+      );
       final face = CatFace(
         boundingBox: BoundingBox.ltrb(0, 0, 100, 100),
         landmarks: [landmark],
@@ -904,8 +917,9 @@ void main() {
     });
 
     test('getLandmark finds all types when all are present', () {
-      final landmarks =
-          CatLandmarkType.values.map((type) => makeLandmark(type)).toList();
+      final landmarks = CatLandmarkType.values
+          .map((type) => makeLandmark(type))
+          .toList();
       final face = CatFace(
         boundingBox: BoundingBox.ltrb(0, 0, 100, 100),
         landmarks: landmarks,
@@ -947,20 +961,22 @@ void main() {
     }
 
     AnimalPose makePose() {
-      return AnimalPose(landmarks: [
-        AnimalPoseLandmark(
-          type: AnimalPoseLandmarkType.neckBase,
-          x: 100.0,
-          y: 50.0,
-          confidence: 0.98,
-        ),
-        AnimalPoseLandmark(
-          type: AnimalPoseLandmarkType.tailEnd,
-          x: 300.0,
-          y: 200.0,
-          confidence: 0.85,
-        ),
-      ]);
+      return AnimalPose(
+        landmarks: [
+          AnimalPoseLandmark(
+            type: AnimalPoseLandmarkType.neckBase,
+            x: 100.0,
+            y: 50.0,
+            confidence: 0.98,
+          ),
+          AnimalPoseLandmark(
+            type: AnimalPoseLandmarkType.tailEnd,
+            x: 300.0,
+            y: 200.0,
+            confidence: 0.85,
+          ),
+        ],
+      );
     }
 
     Cat makeFullCat() {
@@ -1100,12 +1116,7 @@ void main() {
         },
         'pose': {
           'landmarks': [
-            {
-              'type': 'neckBase',
-              'x': 100.0,
-              'y': 50.0,
-              'confidence': 0.98,
-            },
+            {'type': 'neckBase', 'x': 100.0, 'y': 50.0, 'confidence': 0.98},
           ],
         },
         'imageWidth': 640,
@@ -1195,7 +1206,9 @@ void main() {
       expect(restored.face!.boundingBox.left, original.face!.boundingBox.left);
       expect(restored.face!.landmarks.length, original.face!.landmarks.length);
       expect(
-          restored.face!.landmarks[0].type, original.face!.landmarks[0].type);
+        restored.face!.landmarks[0].type,
+        original.face!.landmarks[0].type,
+      );
       expect(restored.face!.landmarks[0].x, original.face!.landmarks[0].x);
       expect(restored.face!.landmarks[0].y, original.face!.landmarks[0].y);
 
@@ -1203,11 +1216,15 @@ void main() {
       expect(restored.pose, isNotNull);
       expect(restored.pose!.landmarks.length, original.pose!.landmarks.length);
       expect(
-          restored.pose!.landmarks[0].type, original.pose!.landmarks[0].type);
+        restored.pose!.landmarks[0].type,
+        original.pose!.landmarks[0].type,
+      );
       expect(restored.pose!.landmarks[0].x, original.pose!.landmarks[0].x);
       expect(restored.pose!.landmarks[0].y, original.pose!.landmarks[0].y);
-      expect(restored.pose!.landmarks[0].confidence,
-          original.pose!.landmarks[0].confidence);
+      expect(
+        restored.pose!.landmarks[0].confidence,
+        original.pose!.landmarks[0].confidence,
+      );
     });
 
     test('toMap/fromMap round-trip with minimal cat', () {
@@ -1397,7 +1414,7 @@ void main() {
           'left': 0.0,
           'top': 0.0,
           'right': 100.0,
-          'bottom': 100.0
+          'bottom': 100.0,
         },
         'score': 0.8,
         'species': 'cat',
@@ -1456,8 +1473,9 @@ void main() {
         CatLandmarkType.rightEar4,
       };
       final rightEarConnections = catLandmarkConnections
-          .where((c) =>
-              rightEarTypes.contains(c[0]) && rightEarTypes.contains(c[1]))
+          .where(
+            (c) => rightEarTypes.contains(c[0]) && rightEarTypes.contains(c[1]),
+          )
           .toList();
       expect(rightEarConnections.length, 4);
     });
@@ -1472,7 +1490,8 @@ void main() {
       };
       final leftEarConnections = catLandmarkConnections
           .where(
-              (c) => leftEarTypes.contains(c[0]) && leftEarTypes.contains(c[1]))
+            (c) => leftEarTypes.contains(c[0]) && leftEarTypes.contains(c[1]),
+          )
           .toList();
       expect(leftEarConnections.length, 4);
     });
@@ -1485,8 +1504,9 @@ void main() {
         CatLandmarkType.rightEyeBottom,
       };
       final rightEyeConnections = catLandmarkConnections
-          .where((c) =>
-              rightEyeTypes.contains(c[0]) && rightEyeTypes.contains(c[1]))
+          .where(
+            (c) => rightEyeTypes.contains(c[0]) && rightEyeTypes.contains(c[1]),
+          )
           .toList();
       expect(rightEyeConnections.length, 4);
     });
@@ -1500,17 +1520,20 @@ void main() {
       };
       final leftEyeConnections = catLandmarkConnections
           .where(
-              (c) => leftEyeTypes.contains(c[0]) && leftEyeTypes.contains(c[1]))
+            (c) => leftEyeTypes.contains(c[0]) && leftEyeTypes.contains(c[1]),
+          )
           .toList();
       expect(leftEyeConnections.length, 4);
     });
 
     test('nose bridge connections are present', () {
-      final found = catLandmarkConnections.where((c) =>
-          (c[0] == CatLandmarkType.noseBridgeLeft ||
-              c[0] == CatLandmarkType.noseBridgeRight) ||
-          (c[1] == CatLandmarkType.noseBridgeLeft ||
-              c[1] == CatLandmarkType.noseBridgeRight));
+      final found = catLandmarkConnections.where(
+        (c) =>
+            (c[0] == CatLandmarkType.noseBridgeLeft ||
+                c[0] == CatLandmarkType.noseBridgeRight) ||
+            (c[1] == CatLandmarkType.noseBridgeLeft ||
+                c[1] == CatLandmarkType.noseBridgeRight),
+      );
       expect(found.length, greaterThanOrEqualTo(2));
     });
 
@@ -1522,7 +1545,8 @@ void main() {
         CatLandmarkType.noseRingRight1,
       };
       final noseRingConnections = catLandmarkConnections.where(
-          (c) => noseRingTypes.contains(c[0]) || noseRingTypes.contains(c[1]));
+        (c) => noseRingTypes.contains(c[0]) || noseRingTypes.contains(c[1]),
+      );
       expect(noseRingConnections.length, greaterThanOrEqualTo(3));
     });
 
@@ -1540,11 +1564,13 @@ void main() {
     });
 
     test('nose tip connections include noseTipLeft and noseTipRight', () {
-      final found = catLandmarkConnections.where((c) =>
-          c[0] == CatLandmarkType.noseTipLeft ||
-          c[1] == CatLandmarkType.noseTipLeft ||
-          c[0] == CatLandmarkType.noseTipRight ||
-          c[1] == CatLandmarkType.noseTipRight);
+      final found = catLandmarkConnections.where(
+        (c) =>
+            c[0] == CatLandmarkType.noseTipLeft ||
+            c[1] == CatLandmarkType.noseTipLeft ||
+            c[0] == CatLandmarkType.noseTipRight ||
+            c[1] == CatLandmarkType.noseTipRight,
+      );
       expect(found.length, greaterThanOrEqualTo(2));
     });
 

@@ -275,25 +275,17 @@ class CatLandmark {
   final double y;
 
   /// Creates a cat face landmark with 2D coordinates.
-  CatLandmark({
-    required this.type,
-    required this.x,
-    required this.y,
-  });
+  CatLandmark({required this.type, required this.x, required this.y});
 
   /// Serializes this landmark to a map for cross-isolate transfer.
-  Map<String, dynamic> toMap() => {
-        'type': type.name,
-        'x': x,
-        'y': y,
-      };
+  Map<String, dynamic> toMap() => {'type': type.name, 'x': x, 'y': y};
 
   /// Deserializes a landmark from a map.
   static CatLandmark fromMap(Map<String, dynamic> map) => CatLandmark(
-        type: CatLandmarkType.values.firstWhere((e) => e.name == map['type']),
-        x: (map['x'] as num).toDouble(),
-        y: (map['y'] as num).toDouble(),
-      );
+    type: CatLandmarkType.values.firstWhere((e) => e.name == map['type']),
+    x: (map['x'] as num).toDouble(),
+    y: (map['y'] as num).toDouble(),
+  );
 
   /// Converts x coordinate to normalized range (0.0 to 1.0)
   double xNorm(int imageWidth) => (x / imageWidth).clamp(0.0, 1.0);
@@ -356,34 +348,31 @@ class CatFace {
   final List<CatLandmark> landmarks;
 
   /// Creates a detected cat face with a bounding box and optional landmarks.
-  const CatFace({
-    required this.boundingBox,
-    required this.landmarks,
-  });
+  const CatFace({required this.boundingBox, required this.landmarks});
 
   /// Serializes this face to a map for cross-isolate transfer.
   Map<String, dynamic> toMap() => {
-        'boundingBox': {
-          'left': boundingBox.left,
-          'top': boundingBox.top,
-          'right': boundingBox.right,
-          'bottom': boundingBox.bottom
-        },
-        'landmarks': landmarks.map((l) => l.toMap()).toList(),
-      };
+    'boundingBox': {
+      'left': boundingBox.left,
+      'top': boundingBox.top,
+      'right': boundingBox.right,
+      'bottom': boundingBox.bottom,
+    },
+    'landmarks': landmarks.map((l) => l.toMap()).toList(),
+  };
 
   /// Deserializes a cat face from a map.
   static CatFace fromMap(Map<String, dynamic> map) => CatFace(
-        boundingBox: BoundingBox.ltrb(
-          (map['boundingBox']['left'] as num).toDouble(),
-          (map['boundingBox']['top'] as num).toDouble(),
-          (map['boundingBox']['right'] as num).toDouble(),
-          (map['boundingBox']['bottom'] as num).toDouble(),
-        ),
-        landmarks: (map['landmarks'] as List<dynamic>)
-            .map((l) => CatLandmark.fromMap(l as Map<String, dynamic>))
-            .toList(),
-      );
+    boundingBox: BoundingBox.ltrb(
+      (map['boundingBox']['left'] as num).toDouble(),
+      (map['boundingBox']['top'] as num).toDouble(),
+      (map['boundingBox']['right'] as num).toDouble(),
+      (map['boundingBox']['bottom'] as num).toDouble(),
+    ),
+    landmarks: (map['landmarks'] as List<dynamic>)
+        .map((l) => CatLandmark.fromMap(l as Map<String, dynamic>))
+        .toList(),
+  );
 
   /// Gets a specific landmark by type, or null if not found
   CatLandmark? getLandmark(CatLandmarkType type) {
@@ -400,8 +389,10 @@ class CatFace {
   @override
   String toString() {
     final String landmarksInfo = landmarks
-        .map((l) =>
-            '${l.type.name}: (${l.x.toStringAsFixed(2)}, ${l.y.toStringAsFixed(2)})')
+        .map(
+          (l) =>
+              '${l.type.name}: (${l.x.toStringAsFixed(2)}, ${l.y.toStringAsFixed(2)})',
+        )
         .join('\n');
     return 'CatFace(\n'
         '  landmarks=${landmarks.length},\n'
@@ -467,43 +458,43 @@ class Cat {
 
   /// Serializes this result to a map for cross-isolate transfer.
   Map<String, dynamic> toMap() => {
-        'boundingBox': {
-          'left': boundingBox.left,
-          'top': boundingBox.top,
-          'right': boundingBox.right,
-          'bottom': boundingBox.bottom
-        },
-        'score': score,
-        'species': species,
-        'breed': breed,
-        'speciesConfidence': speciesConfidence,
-        'face': face?.toMap(),
-        'pose': pose?.toMap(),
-        'imageWidth': imageWidth,
-        'imageHeight': imageHeight,
-      };
+    'boundingBox': {
+      'left': boundingBox.left,
+      'top': boundingBox.top,
+      'right': boundingBox.right,
+      'bottom': boundingBox.bottom,
+    },
+    'score': score,
+    'species': species,
+    'breed': breed,
+    'speciesConfidence': speciesConfidence,
+    'face': face?.toMap(),
+    'pose': pose?.toMap(),
+    'imageWidth': imageWidth,
+    'imageHeight': imageHeight,
+  };
 
   /// Deserializes a cat detection result from a map.
   static Cat fromMap(Map<String, dynamic> map) => Cat(
-        boundingBox: BoundingBox.ltrb(
-          (map['boundingBox']['left'] as num).toDouble(),
-          (map['boundingBox']['top'] as num).toDouble(),
-          (map['boundingBox']['right'] as num).toDouble(),
-          (map['boundingBox']['bottom'] as num).toDouble(),
-        ),
-        score: (map['score'] as num).toDouble(),
-        species: map['species'] as String?,
-        breed: map['breed'] as String?,
-        speciesConfidence: (map['speciesConfidence'] as num?)?.toDouble(),
-        face: map['face'] != null
-            ? CatFace.fromMap(map['face'] as Map<String, dynamic>)
-            : null,
-        pose: map['pose'] != null
-            ? AnimalPose.fromMap(map['pose'] as Map<String, dynamic>)
-            : null,
-        imageWidth: map['imageWidth'] as int,
-        imageHeight: map['imageHeight'] as int,
-      );
+    boundingBox: BoundingBox.ltrb(
+      (map['boundingBox']['left'] as num).toDouble(),
+      (map['boundingBox']['top'] as num).toDouble(),
+      (map['boundingBox']['right'] as num).toDouble(),
+      (map['boundingBox']['bottom'] as num).toDouble(),
+    ),
+    score: (map['score'] as num).toDouble(),
+    species: map['species'] as String?,
+    breed: map['breed'] as String?,
+    speciesConfidence: (map['speciesConfidence'] as num?)?.toDouble(),
+    face: map['face'] != null
+        ? CatFace.fromMap(map['face'] as Map<String, dynamic>)
+        : null,
+    pose: map['pose'] != null
+        ? AnimalPose.fromMap(map['pose'] as Map<String, dynamic>)
+        : null,
+    imageWidth: map['imageWidth'] as int,
+    imageHeight: map['imageHeight'] as int,
+  );
 
   @override
   String toString() =>

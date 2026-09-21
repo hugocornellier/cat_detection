@@ -205,10 +205,7 @@ class CatDetector {
     double minSpeciesConfidence = 0.0,
     void Function(String model, int received, int total)? onDownloadProgress,
     bool useCompiledModel = true,
-    Set<Accelerator> accelerators = const {
-      Accelerator.gpu,
-      Accelerator.cpu,
-    },
+    Set<Accelerator> accelerators = const {Accelerator.gpu, Accelerator.cpu},
     Precision precision = Precision.fp32,
   }) async {
     final detector = CatDetector(
@@ -273,10 +270,7 @@ class CatDetector {
   Future<void> initialize({
     void Function(String model, int received, int total)? onDownloadProgress,
     bool useCompiledModel = true,
-    Set<Accelerator> accelerators = const {
-      Accelerator.gpu,
-      Accelerator.cpu,
-    },
+    Set<Accelerator> accelerators = const {Accelerator.gpu, Accelerator.cpu},
     Precision precision = Precision.fp32,
   }) async {
     if (_worker != null) {
@@ -303,12 +297,12 @@ class CatDetector {
         rootBundle.load(landmarkPath),
       ]);
 
-      localizerTtd = TransferableTypedData.fromList(
-        [results[0].buffer.asUint8List()],
-      );
-      landmarkTtd = TransferableTypedData.fromList(
-        [results[1].buffer.asUint8List()],
-      );
+      localizerTtd = TransferableTypedData.fromList([
+        results[0].buffer.asUint8List(),
+      ]);
+      landmarkTtd = TransferableTypedData.fromList([
+        results[1].buffer.asUint8List(),
+      ]);
     }
 
     // Body pipeline assets
@@ -334,12 +328,12 @@ class CatDetector {
         rootBundle.loadString(speciesMappingPath),
       ]);
 
-      bodyDetectorTtd = TransferableTypedData.fromList(
-        [(bodyResults[0] as ByteData).buffer.asUint8List()],
-      );
-      classifierTtd = TransferableTypedData.fromList(
-        [(bodyResults[1] as ByteData).buffer.asUint8List()],
-      );
+      bodyDetectorTtd = TransferableTypedData.fromList([
+        (bodyResults[0] as ByteData).buffer.asUint8List(),
+      ]);
+      classifierTtd = TransferableTypedData.fromList([
+        (bodyResults[1] as ByteData).buffer.asUint8List(),
+      ]);
       speciesMappingJson = bodyResults[2] as String;
 
       if (poseModel == AnimalPoseModel.hrnet) {
@@ -347,20 +341,24 @@ class CatDetector {
           onProgress: onDownloadProgress == null
               ? null
               : (received, total) => onDownloadProgress(
-                  ModelDownloader.modelHrnet, received, total),
+                  ModelDownloader.modelHrnet,
+                  received,
+                  total,
+                ),
         );
         poseModelTtd = TransferableTypedData.fromList([hrnetBytes]);
       } else {
         const rtmposePath =
             'packages/animal_detection/assets/models/superanimal_rtmpose_s_float16.tflite';
         final rtmposeData = await rootBundle.load(rtmposePath);
-        poseModelTtd = TransferableTypedData.fromList(
-          [rtmposeData.buffer.asUint8List()],
-        );
+        poseModelTtd = TransferableTypedData.fromList([
+          rtmposeData.buffer.asUint8List(),
+        ]);
       }
     }
 
-    final effectivePoolSize = (useCompiledModel ||
+    final effectivePoolSize =
+        (useCompiledModel ||
             (landmarkPerformanceConfig ?? performanceConfig).mode ==
                 PerformanceMode.disabled)
         ? interpreterPoolSize
@@ -407,12 +405,9 @@ class CatDetector {
   /// Throws [StateError] if called before [initialize].
   Future<List<Cat>> detect(Uint8List imageBytes) async {
     final worker = _requireWorker();
-    final result = await worker.sendRequest<List<dynamic>>(
-      'detect',
-      {
-        'bytes': TransferableTypedData.fromList([imageBytes])
-      },
-    );
+    final result = await worker.sendRequest<List<dynamic>>('detect', {
+      'bytes': TransferableTypedData.fromList([imageBytes]),
+    });
     return _deserializeCats(result);
   }
 
@@ -442,15 +437,12 @@ class CatDetector {
     // copy first; TransferableTypedData.fromList copies the bytes
     // synchronously, so the clone can be disposed immediately after.
     final cv.Mat src = image.isContinuous ? image : image.clone();
-    final result = await worker.sendRequest<List<dynamic>>(
-      'detectMat',
-      {
-        'bytes': TransferableTypedData.fromList([src.data]),
-        'width': imageWidth ?? src.cols,
-        'height': imageHeight ?? src.rows,
-        'matType': src.type.value,
-      },
-    );
+    final result = await worker.sendRequest<List<dynamic>>('detectMat', {
+      'bytes': TransferableTypedData.fromList([src.data]),
+      'width': imageWidth ?? src.cols,
+      'height': imageHeight ?? src.rows,
+      'matType': src.type.value,
+    });
     if (!identical(src, image)) src.dispose();
     return _deserializeCats(result);
   }
@@ -542,8 +534,9 @@ class CatDetector {
       final localizerBytes = data.localizerBytes?.materialize().asUint8List();
       final landmarkBytes = data.landmarkBytes?.materialize().asUint8List();
 
-      final bodyDetectorBytes =
-          data.bodyDetectorBytes?.materialize().asUint8List();
+      final bodyDetectorBytes = data.bodyDetectorBytes
+          ?.materialize()
+          .asUint8List();
       final classifierBytes = data.classifierBytes?.materialize().asUint8List();
       final poseModelBytes = data.poseModelBytes?.materialize().asUint8List();
 
@@ -627,8 +620,8 @@ class CatDetector {
               return;
             }
 
-            final ByteBuffer bb =
-                (message['bytes'] as TransferableTypedData).materialize();
+            final ByteBuffer bb = (message['bytes'] as TransferableTypedData)
+                .materialize();
             final cats = await detector!.detect(bb.asUint8List());
 
             mainSendPort.send({
@@ -645,8 +638,8 @@ class CatDetector {
               return;
             }
 
-            final ByteBuffer bb =
-                (message['bytes'] as TransferableTypedData).materialize();
+            final ByteBuffer bb = (message['bytes'] as TransferableTypedData)
+                .materialize();
             final int width = message['width'] as int;
             final int height = message['height'] as int;
             final matType = cv.MatType(message['matType'] as int);

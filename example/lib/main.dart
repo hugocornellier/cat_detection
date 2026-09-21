@@ -20,10 +20,7 @@ class CatDetectionApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Cat Detection Demo',
-      theme: ThemeData(
-        colorSchemeSeed: Colors.purple,
-        useMaterial3: true,
-      ),
+      theme: ThemeData(colorSchemeSeed: Colors.purple, useMaterial3: true),
       home: const CatDetectionHome(),
     );
   }
@@ -35,9 +32,7 @@ class CatDetectionHome extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Cat Detection Demo'),
-      ),
+      appBar: AppBar(title: const Text('Cat Detection Demo')),
       body: _ScrollableCentered(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 720),
@@ -102,11 +97,7 @@ class CatDetectionHome extends StatelessWidget {
     );
   }
 
-  Widget _buildSection(
-    BuildContext context,
-    String title,
-    List<Widget> cards,
-  ) {
+  Widget _buildSection(BuildContext context, String title, List<Widget> cards) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -116,9 +107,9 @@ class CatDetectionHome extends StatelessWidget {
           child: Text(
             title,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[700],
-                ),
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[700],
+            ),
           ),
         ),
         const SizedBox(height: 12),
@@ -170,9 +161,9 @@ class CatDetectionHome extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   description,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.grey[600],
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -260,8 +251,9 @@ class _StillImageScreenState extends State<StillImageScreen> {
         onDownloadProgress: (model, received, total) {
           if (!mounted) return;
           final mb = (received / 1024 / 1024).toStringAsFixed(1);
-          final totalMb =
-              total > 0 ? (total / 1024 / 1024).toStringAsFixed(1) : '?';
+          final totalMb = total > 0
+              ? (total / 1024 / 1024).toStringAsFixed(1)
+              : '?';
           final String name;
           if (model.contains('hrnet')) {
             name = 'HRNet';
@@ -442,10 +434,9 @@ class _StillImageScreenState extends State<StillImageScreen> {
               Text(
                 'This is a one-time download. Models will be cached for future use.',
                 textAlign: TextAlign.center,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: Colors.grey[600]),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
               ),
             ],
           ),
@@ -560,9 +551,7 @@ class _StillImageScreenState extends State<StillImageScreen> {
                           Expanded(
                             child: Text(
                               'Detected: ${_results.length} cat${_results.length > 1 ? 's' : ''}',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleLarge
+                              style: Theme.of(context).textTheme.titleLarge
                                   ?.copyWith(
                                     color: Colors.green,
                                     fontWeight: FontWeight.bold,
@@ -618,8 +607,8 @@ class _StillImageScreenState extends State<StillImageScreen> {
         ElevatedButton.icon(
           onPressed: _isInitialized && !_isProcessing
               ? () => _isDesktop
-                  ? _pickFileFromSystem()
-                  : _pickImage(ImageSource.gallery)
+                    ? _pickFileFromSystem()
+                    : _pickImage(ImageSource.gallery)
               : null,
           icon: const Icon(Icons.photo_library),
           label: Text(_isDesktop ? 'Open File' : 'Gallery'),
@@ -685,7 +674,8 @@ class _StillImageScreenState extends State<StillImageScreen> {
               const SizedBox(height: 8),
               RadioGroup<AnimalPoseModel>(
                 groupValue: _poseModel,
-                onChanged: (_detectionMode == CatDetectionMode.faceOnly ||
+                onChanged:
+                    (_detectionMode == CatDetectionMode.faceOnly ||
                         _isDownloading)
                     ? (_) {}
                     : (value) {
@@ -698,14 +688,16 @@ class _StillImageScreenState extends State<StillImageScreen> {
                   children: [
                     RadioListTile<AnimalPoseModel>(
                       title: const Text('RTMPose-S'),
-                      subtitle:
-                          const Text('11.6 MB, bundled. Fast SimCC decoder.'),
+                      subtitle: const Text(
+                        '11.6 MB, bundled. Fast SimCC decoder.',
+                      ),
                       value: AnimalPoseModel.rtmpose,
                     ),
                     RadioListTile<AnimalPoseModel>(
                       title: const Text('HRNet-w32'),
                       subtitle: const Text(
-                          '54.6 MB, downloaded on demand. Most accurate.'),
+                        '54.6 MB, downloaded on demand. Most accurate.',
+                      ),
                       value: AnimalPoseModel.hrnet,
                     ),
                   ],
@@ -763,9 +755,9 @@ class _StillImageScreenState extends State<StillImageScreen> {
             for (final cat in _results) ...[
               Text(
                 'Cat (score: ${(cat.score * 100).toStringAsFixed(1)}%)',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
               if (cat.species != null)
                 Padding(
@@ -778,28 +770,32 @@ class _StillImageScreenState extends State<StillImageScreen> {
                   'Body Pose (${cat.pose!.landmarks.length} keypoints)',
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
-                ...cat.pose!.landmarks.map((lm) => Card(
-                      margin: const EdgeInsets.only(bottom: 4),
-                      child: ListTile(
-                        dense: true,
-                        leading: CircleAvatar(
-                          radius: 14,
-                          backgroundColor: Colors.red,
-                          child: Text(
-                            lm.type.index.toString(),
-                            style: const TextStyle(
-                                fontSize: 9, color: Colors.white),
+                ...cat.pose!.landmarks.map(
+                  (lm) => Card(
+                    margin: const EdgeInsets.only(bottom: 4),
+                    child: ListTile(
+                      dense: true,
+                      leading: CircleAvatar(
+                        radius: 14,
+                        backgroundColor: Colors.red,
+                        child: Text(
+                          lm.type.index.toString(),
+                          style: const TextStyle(
+                            fontSize: 9,
+                            color: Colors.white,
                           ),
                         ),
-                        title: Text(
-                          lm.type.name,
-                          style: const TextStyle(fontWeight: FontWeight.w500),
-                        ),
-                        subtitle: Text(
-                          'Position: (${lm.x.toStringAsFixed(1)}, ${lm.y.toStringAsFixed(1)})  conf: ${(lm.confidence * 100).toStringAsFixed(0)}%',
-                        ),
                       ),
-                    )),
+                      title: Text(
+                        lm.type.name,
+                        style: const TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                      subtitle: Text(
+                        'Position: (${lm.x.toStringAsFixed(1)}, ${lm.y.toStringAsFixed(1)})  conf: ${(lm.confidence * 100).toStringAsFixed(0)}%',
+                      ),
+                    ),
+                  ),
+                ),
               ],
               if (cat.face != null && cat.face!.hasLandmarks) ...[
                 const SizedBox(height: 8),
@@ -807,28 +803,32 @@ class _StillImageScreenState extends State<StillImageScreen> {
                   'Face Landmarks (${cat.face!.landmarks.length} keypoints)',
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
-                ...cat.face!.landmarks.map((lm) => Card(
-                      margin: const EdgeInsets.only(bottom: 4),
-                      child: ListTile(
-                        dense: true,
-                        leading: CircleAvatar(
-                          radius: 14,
-                          backgroundColor: _landmarkColor(lm.type),
-                          child: Text(
-                            lm.type.index.toString(),
-                            style: const TextStyle(
-                                fontSize: 9, color: Colors.white),
+                ...cat.face!.landmarks.map(
+                  (lm) => Card(
+                    margin: const EdgeInsets.only(bottom: 4),
+                    child: ListTile(
+                      dense: true,
+                      leading: CircleAvatar(
+                        radius: 14,
+                        backgroundColor: _landmarkColor(lm.type),
+                        child: Text(
+                          lm.type.index.toString(),
+                          style: const TextStyle(
+                            fontSize: 9,
+                            color: Colors.white,
                           ),
                         ),
-                        title: Text(
-                          lm.type.name,
-                          style: const TextStyle(fontWeight: FontWeight.w500),
-                        ),
-                        subtitle: Text(
-                          'Position: (${lm.x.toStringAsFixed(1)}, ${lm.y.toStringAsFixed(1)})',
-                        ),
                       ),
-                    )),
+                      title: Text(
+                        lm.type.name,
+                        style: const TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                      subtitle: Text(
+                        'Position: (${lm.x.toStringAsFixed(1)}, ${lm.y.toStringAsFixed(1)})',
+                      ),
+                    ),
+                  ),
+                ),
               ],
               if (cat != _results.last) const Divider(height: 24),
             ],
@@ -872,22 +872,24 @@ class CatVisualizerWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, constraints) {
-      return Stack(
-        children: [
-          Image.memory(imageBytes, fit: BoxFit.contain),
-          Positioned.fill(
-            child: CustomPaint(
-              painter: CatOverlayPainter(
-                results: results,
-                imageWidth: imageWidth,
-                imageHeight: imageHeight,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Stack(
+          children: [
+            Image.memory(imageBytes, fit: BoxFit.contain),
+            Positioned.fill(
+              child: CustomPaint(
+                painter: CatOverlayPainter(
+                  results: results,
+                  imageWidth: imageWidth,
+                  imageHeight: imageHeight,
+                ),
               ),
             ),
-          ),
-        ],
-      );
-    });
+          ],
+        );
+      },
+    );
   }
 }
 
@@ -932,19 +934,43 @@ class CatOverlayPainter extends CustomPainter {
 
       if (cat.face != null) {
         _drawFaceBoundingBox(
-            canvas, cat.face!, scaleX, scaleY, offsetX, offsetY);
+          canvas,
+          cat.face!,
+          scaleX,
+          scaleY,
+          offsetX,
+          offsetY,
+        );
         if (cat.face!.hasLandmarks) {
           _drawFaceConnections(
-              canvas, cat.face!, scaleX, scaleY, offsetX, offsetY);
+            canvas,
+            cat.face!,
+            scaleX,
+            scaleY,
+            offsetX,
+            offsetY,
+          );
           _drawFaceLandmarks(
-              canvas, cat.face!, scaleX, scaleY, offsetX, offsetY);
+            canvas,
+            cat.face!,
+            scaleX,
+            scaleY,
+            offsetX,
+            offsetY,
+          );
         }
       }
     }
   }
 
-  void _drawBodyBoundingBox(Canvas canvas, Cat cat, double scaleX,
-      double scaleY, double offsetX, double offsetY) {
+  void _drawBodyBoundingBox(
+    Canvas canvas,
+    Cat cat,
+    double scaleX,
+    double scaleY,
+    double offsetX,
+    double offsetY,
+  ) {
     final Paint strokePaint = Paint()
       ..color = Colors.orange.withValues(alpha: 0.9)
       ..style = PaintingStyle.stroke
@@ -963,8 +989,14 @@ class CatOverlayPainter extends CustomPainter {
     canvas.drawRect(rect, strokePaint);
   }
 
-  void _drawSpeciesLabel(Canvas canvas, Cat cat, double scaleX, double scaleY,
-      double offsetX, double offsetY) {
+  void _drawSpeciesLabel(
+    Canvas canvas,
+    Cat cat,
+    double scaleX,
+    double scaleY,
+    double offsetX,
+    double offsetY,
+  ) {
     if (cat.species == null) return;
 
     final double x1 = cat.boundingBox.left * scaleX + offsetX;
@@ -975,10 +1007,7 @@ class CatOverlayPainter extends CustomPainter {
     final String? confidence = cat.speciesConfidence == null
         ? null
         : '${(cat.speciesConfidence! * 100).toStringAsFixed(0)}%';
-    final List<String> parts = [
-      ?cat.breed,
-      ?confidence,
-    ];
+    final List<String> parts = [?cat.breed, ?confidence];
     final String breedInfo = parts.isEmpty ? '' : ' (${parts.join(', ')})';
     final String label = '${cat.species}$breedInfo';
     final TextPainter textPainter = TextPainter(
@@ -1010,8 +1039,14 @@ class CatOverlayPainter extends CustomPainter {
     textPainter.paint(canvas, Offset(x1 + padding, labelY + padding));
   }
 
-  void _drawBodySkeleton(Canvas canvas, Cat cat, double scaleX, double scaleY,
-      double offsetX, double offsetY) {
+  void _drawBodySkeleton(
+    Canvas canvas,
+    Cat cat,
+    double scaleX,
+    double scaleY,
+    double offsetX,
+    double offsetY,
+  ) {
     final Paint posePaint = Paint()
       ..color = Colors.orange.withValues(alpha: 0.8)
       ..strokeWidth = 2.5
@@ -1030,18 +1065,32 @@ class CatOverlayPainter extends CustomPainter {
     }
   }
 
-  void _drawBodyKeypoints(Canvas canvas, Cat cat, double scaleX, double scaleY,
-      double offsetX, double offsetY) {
+  void _drawBodyKeypoints(
+    Canvas canvas,
+    Cat cat,
+    double scaleX,
+    double scaleY,
+    double offsetX,
+    double offsetY,
+  ) {
     for (final lm in cat.pose!.landmarks) {
-      final Offset center =
-          Offset(lm.x * scaleX + offsetX, lm.y * scaleY + offsetY);
+      final Offset center = Offset(
+        lm.x * scaleX + offsetX,
+        lm.y * scaleY + offsetY,
+      );
       canvas.drawCircle(center, 5, Paint()..color = Colors.red);
       canvas.drawCircle(center, 2, Paint()..color = Colors.white);
     }
   }
 
-  void _drawFaceBoundingBox(Canvas canvas, CatFace face, double scaleX,
-      double scaleY, double offsetX, double offsetY) {
+  void _drawFaceBoundingBox(
+    Canvas canvas,
+    CatFace face,
+    double scaleX,
+    double scaleY,
+    double offsetX,
+    double offsetY,
+  ) {
     final Paint strokePaint = Paint()
       ..color = Colors.cyan.withValues(alpha: 0.9)
       ..style = PaintingStyle.stroke
@@ -1054,8 +1103,14 @@ class CatOverlayPainter extends CustomPainter {
     canvas.drawRect(Rect.fromLTRB(x1, y1, x2, y2), strokePaint);
   }
 
-  void _drawFaceConnections(Canvas canvas, CatFace face, double scaleX,
-      double scaleY, double offsetX, double offsetY) {
+  void _drawFaceConnections(
+    Canvas canvas,
+    CatFace face,
+    double scaleX,
+    double scaleY,
+    double offsetX,
+    double offsetY,
+  ) {
     final Paint paint = Paint()
       ..color = Colors.white.withValues(alpha: 0.7)
       ..strokeWidth = 2
@@ -1074,11 +1129,19 @@ class CatOverlayPainter extends CustomPainter {
     }
   }
 
-  void _drawFaceLandmarks(Canvas canvas, CatFace face, double scaleX,
-      double scaleY, double offsetX, double offsetY) {
+  void _drawFaceLandmarks(
+    Canvas canvas,
+    CatFace face,
+    double scaleX,
+    double scaleY,
+    double offsetX,
+    double offsetY,
+  ) {
     for (final lm in face.landmarks) {
-      final Offset center =
-          Offset(lm.x * scaleX + offsetX, lm.y * scaleY + offsetY);
+      final Offset center = Offset(
+        lm.x * scaleX + offsetX,
+        lm.y * scaleY + offsetY,
+      );
       final Color color = _landmarkColor(lm.type);
 
       final Paint glowPaint = Paint()..color = color.withValues(alpha: 0.3);

@@ -58,8 +58,9 @@ void main() {
       await detector.dispose();
     });
 
-    testWidgets('should report isInitialized as true after init',
-        (tester) async {
+    testWidgets('should report isInitialized as true after init', (
+      tester,
+    ) async {
       final detector = CatDetector();
       expect(detector.isInitialized, false);
       await detector.initialize();
@@ -67,49 +68,57 @@ void main() {
       await detector.dispose();
     });
 
-    testWidgets('should report isInitialized as false before init',
-        (tester) async {
+    testWidgets('should report isInitialized as false before init', (
+      tester,
+    ) async {
       final detector = CatDetector();
       expect(detector.isInitialized, false);
     });
 
-    testWidgets('should throw StateError when detect called before init',
-        (tester) async {
+    testWidgets('should throw StateError when detect called before init', (
+      tester,
+    ) async {
       final detector = CatDetector();
       final bytes = _TestUtils.createTinyBlackPng();
 
       expect(
         () => detector.detect(bytes),
-        throwsA(isA<StateError>().having(
-          (e) => e.message,
-          'message',
-          contains('not initialized'),
-        )),
-      );
-    });
-
-    testWidgets('should throw StateError when detectFromMat called before init',
-        (tester) async {
-      final detector = CatDetector();
-      final mat = cv.Mat.zeros(100, 100, cv.MatType.CV_8UC3);
-
-      try {
-        expect(
-          () => detector.detectFromMat(
-            mat,
-            imageWidth: mat.cols,
-            imageHeight: mat.rows,
-          ),
-          throwsA(isA<StateError>().having(
+        throwsA(
+          isA<StateError>().having(
             (e) => e.message,
             'message',
             contains('not initialized'),
-          )),
-        );
-      } finally {
-        mat.dispose();
-      }
+          ),
+        ),
+      );
     });
+
+    testWidgets(
+      'should throw StateError when detectFromMat called before init',
+      (tester) async {
+        final detector = CatDetector();
+        final mat = cv.Mat.zeros(100, 100, cv.MatType.CV_8UC3);
+
+        try {
+          expect(
+            () => detector.detectFromMat(
+              mat,
+              imageWidth: mat.cols,
+              imageHeight: mat.rows,
+            ),
+            throwsA(
+              isA<StateError>().having(
+                (e) => e.message,
+                'message',
+                contains('not initialized'),
+              ),
+            ),
+          );
+        } finally {
+          mat.dispose();
+        }
+      },
+    );
 
     testWidgets('should allow re-initialization', (tester) async {
       final detector = CatDetector();
@@ -202,8 +211,9 @@ void main() {
       await detector.dispose();
     });
 
-    testWidgets('should have correct imageWidth and imageHeight',
-        (tester) async {
+    testWidgets('should have correct imageWidth and imageHeight', (
+      tester,
+    ) async {
       final detector = CatDetector();
       await detector.initialize();
 
@@ -229,11 +239,10 @@ void main() {
       await detector.dispose();
     });
 
-    testWidgets('should detect face with landmarks when mode is full',
-        (tester) async {
-      final detector = CatDetector(
-        mode: CatDetectionMode.full,
-      );
+    testWidgets('should detect face with landmarks when mode is full', (
+      tester,
+    ) async {
+      final detector = CatDetector(mode: CatDetectionMode.full);
       await detector.initialize();
 
       final ByteData data = await rootBundle.load(_catImagePath);
@@ -257,10 +266,16 @@ void main() {
         }
 
         expect(results, isNotEmpty);
-        expect(results.first.face, isNotNull,
-            reason: 'Face should not be null in full mode');
-        expect(results.first.face!.hasLandmarks, true,
-            reason: 'Face should have landmarks in full mode');
+        expect(
+          results.first.face,
+          isNotNull,
+          reason: 'Face should not be null in full mode',
+        );
+        expect(
+          results.first.face!.hasLandmarks,
+          true,
+          reason: 'Face should have landmarks in full mode',
+        );
       } finally {
         mat.dispose();
       }
@@ -269,9 +284,7 @@ void main() {
     });
 
     testWidgets('should return 48 landmarks', (tester) async {
-      final detector = CatDetector(
-        mode: CatDetectionMode.full,
-      );
+      final detector = CatDetector(mode: CatDetectionMode.full);
       await detector.initialize();
 
       final ByteData data = await rootBundle.load(_catImagePath);
@@ -295,9 +308,7 @@ void main() {
     });
 
     testWidgets('should have all landmark types present', (tester) async {
-      final detector = CatDetector(
-        mode: CatDetectionMode.full,
-      );
+      final detector = CatDetector(mode: CatDetectionMode.full);
       await detector.initialize();
 
       final ByteData data = await rootBundle.load(_catImagePath);
@@ -325,8 +336,9 @@ void main() {
       await detector.dispose();
     });
 
-    testWidgets('landmarks are anatomically ordered top to bottom',
-        (tester) async {
+    testWidgets('landmarks are anatomically ordered top to bottom', (
+      tester,
+    ) async {
       // Catches gross breakage in the coordinate pipeline: a wrong flip index,
       // a transposed x/y, or a crop mapped back with the wrong metadata. On a
       // cat face the group ordering ears -> eyes -> nose -> mouth is stable.
@@ -400,8 +412,11 @@ void main() {
 
         expect(earY, lessThan(eyeY), reason: 'ears should sit above the eyes');
         expect(eyeY, lessThan(noseY), reason: 'eyes should sit above the nose');
-        expect(noseY, lessThan(mouthY),
-            reason: 'nose should sit above the mouth');
+        expect(
+          noseY,
+          lessThan(mouthY),
+          reason: 'nose should sit above the mouth',
+        );
 
         // Image-left/right: the cat's right eye appears on the image left.
         expect(
@@ -416,8 +431,9 @@ void main() {
       await detector.dispose();
     });
 
-    testWidgets('bundled landmark model native input shape is 384x384',
-        (tester) async {
+    testWidgets('bundled landmark model native input shape is 384x384', (
+      tester,
+    ) async {
       // The deterministic guard for the resolution trap. LandmarkModelRunnerBase
       // calls resizeInputTensor with the size CatDetector passes it, and TFLite
       // accepts a resize away from the model's native shape without erroring,
@@ -436,8 +452,9 @@ void main() {
       }
     });
 
-    testWidgets('bundled face localizer native input shape is 224x224',
-        (tester) async {
+    testWidgets('bundled face localizer native input shape is 224x224', (
+      tester,
+    ) async {
       final interpreter = await Interpreter.fromAsset(
         'packages/cat_detection/assets/models/cat_face_localizer.tflite',
       );
@@ -465,16 +482,19 @@ void main() {
       final List<Cat> results = await detector.detect(bytes);
 
       expect(results, isNotEmpty);
-      expect(results.first.boundingBox.right,
-          greaterThan(results.first.boundingBox.left));
+      expect(
+        results.first.boundingBox.right,
+        greaterThan(results.first.boundingBox.left),
+      );
       expect(results.first.imageWidth, greaterThan(0));
       expect(results.first.imageHeight, greaterThan(0));
 
       await detector.dispose();
     });
 
-    testWidgets('should produce matching results to detectFromMat',
-        (tester) async {
+    testWidgets('should produce matching results to detectFromMat', (
+      tester,
+    ) async {
       final detector = CatDetector();
       await detector.initialize();
 
@@ -494,8 +514,10 @@ void main() {
         expect(fromBytes.length, fromMat.length);
 
         for (int i = 0; i < fromBytes.length; i++) {
-          expect(fromBytes[i].face?.landmarks.length,
-              fromMat[i].face?.landmarks.length);
+          expect(
+            fromBytes[i].face?.landmarks.length,
+            fromMat[i].face?.landmarks.length,
+          );
         }
       } finally {
         mat.dispose();
@@ -522,8 +544,9 @@ void main() {
   // ---------------------------------------------------------------------------
 
   group('CatDetector - poseOnly Mode', () {
-    testWidgets('should return cat with no face in poseOnly mode',
-        (tester) async {
+    testWidgets('should return cat with no face in poseOnly mode', (
+      tester,
+    ) async {
       final detector = CatDetector(mode: CatDetectionMode.poseOnly);
       await detector.initialize();
 
@@ -548,8 +571,9 @@ void main() {
       await detector.dispose();
     });
 
-    testWidgets('should still have valid bounding box in poseOnly mode',
-        (tester) async {
+    testWidgets('should still have valid bounding box in poseOnly mode', (
+      tester,
+    ) async {
       final detector = CatDetector(mode: CatDetectionMode.poseOnly);
       await detector.initialize();
 
@@ -589,8 +613,11 @@ void main() {
 
       final cat = results.first;
       expect(cat.pose, isNotNull, reason: 'Pose should be present');
-      expect(cat.pose!.landmarks, isNotEmpty,
-          reason: 'Pose should have landmarks');
+      expect(
+        cat.pose!.landmarks,
+        isNotEmpty,
+        reason: 'Pose should have landmarks',
+      );
 
       await detector.dispose();
     });
@@ -601,8 +628,9 @@ void main() {
   // ---------------------------------------------------------------------------
 
   group('CatDetector - Error Recovery', () {
-    testWidgets('should recover after empty-result input (1x1 black image)',
-        (tester) async {
+    testWidgets('should recover after empty-result input (1x1 black image)', (
+      tester,
+    ) async {
       final detector = CatDetector();
       await detector.initialize();
 
@@ -640,8 +668,9 @@ void main() {
   // ---------------------------------------------------------------------------
 
   group('CatDetector - Result Consistency', () {
-    testWidgets('should produce deterministic results (same image twice)',
-        (tester) async {
+    testWidgets('should produce deterministic results (same image twice)', (
+      tester,
+    ) async {
       final detector = CatDetector();
       await detector.initialize();
 
@@ -665,8 +694,10 @@ void main() {
         expect(first.length, second.length);
 
         for (int i = 0; i < first.length; i++) {
-          expect(first[i].face?.landmarks.length,
-              second[i].face?.landmarks.length);
+          expect(
+            first[i].face?.landmarks.length,
+            second[i].face?.landmarks.length,
+          );
 
           final firstLandmarks = first[i].face?.landmarks ?? [];
           final secondLandmarks = second[i].face?.landmarks ?? [];
@@ -711,10 +742,16 @@ void main() {
       final tightResults = await detectorTight.detect(bytes);
       final wideResults = await detectorWide.detect(bytes);
 
-      expect(tightResults, isNotEmpty,
-          reason: 'Tight margin detector returned no results');
-      expect(wideResults, isNotEmpty,
-          reason: 'Wide margin detector returned no results');
+      expect(
+        tightResults,
+        isNotEmpty,
+        reason: 'Tight margin detector returned no results',
+      );
+      expect(
+        wideResults,
+        isNotEmpty,
+        reason: 'Wide margin detector returned no results',
+      );
 
       // Both should produce 48 landmarks.
       expect(tightResults.first.face, isNotNull);
@@ -741,8 +778,9 @@ void main() {
       await detector.dispose();
     });
 
-    testWidgets('should expose configured mode and landmarkModel',
-        (tester) async {
+    testWidgets('should expose configured mode and landmarkModel', (
+      tester,
+    ) async {
       final detector = CatDetector(
         mode: CatDetectionMode.poseOnly,
         landmarkModel: CatLandmarkModel.full,
@@ -763,11 +801,10 @@ void main() {
   // ---------------------------------------------------------------------------
 
   group('CatDetector - Landmark Validation', () {
-    testWidgets('all landmarks should have finite x,y coordinates',
-        (tester) async {
-      final detector = CatDetector(
-        mode: CatDetectionMode.full,
-      );
+    testWidgets('all landmarks should have finite x,y coordinates', (
+      tester,
+    ) async {
+      final detector = CatDetector(mode: CatDetectionMode.full);
       await detector.initialize();
 
       final ByteData data = await rootBundle.load(_catImagePath);
@@ -778,10 +815,16 @@ void main() {
 
       for (final cat in results) {
         for (final landmark in cat.face?.landmarks ?? []) {
-          expect(landmark.x.isFinite, true,
-              reason: 'x is not finite for ${landmark.type}');
-          expect(landmark.y.isFinite, true,
-              reason: 'y is not finite for ${landmark.type}');
+          expect(
+            landmark.x.isFinite,
+            true,
+            reason: 'x is not finite for ${landmark.type}',
+          );
+          expect(
+            landmark.y.isFinite,
+            true,
+            reason: 'y is not finite for ${landmark.type}',
+          );
         }
       }
 
@@ -789,9 +832,7 @@ void main() {
     });
 
     testWidgets('landmarks should be within image bounds', (tester) async {
-      final detector = CatDetector(
-        mode: CatDetectionMode.full,
-      );
+      final detector = CatDetector(mode: CatDetectionMode.full);
       await detector.initialize();
 
       final ByteData data = await rootBundle.load(_catImagePath);
@@ -810,16 +851,28 @@ void main() {
         expect(cat.face, isNotNull, reason: 'Face should not be null');
 
         for (final landmark in cat.face!.landmarks) {
-          expect(landmark.x, greaterThanOrEqualTo(0),
-              reason: '${landmark.type}.x is negative: ${landmark.x}');
-          expect(landmark.x, lessThanOrEqualTo(cat.imageWidth.toDouble()),
-              reason:
-                  '${landmark.type}.x exceeds imageWidth: ${landmark.x} > ${cat.imageWidth}');
-          expect(landmark.y, greaterThanOrEqualTo(0),
-              reason: '${landmark.type}.y is negative: ${landmark.y}');
-          expect(landmark.y, lessThanOrEqualTo(cat.imageHeight.toDouble()),
-              reason:
-                  '${landmark.type}.y exceeds imageHeight: ${landmark.y} > ${cat.imageHeight}');
+          expect(
+            landmark.x,
+            greaterThanOrEqualTo(0),
+            reason: '${landmark.type}.x is negative: ${landmark.x}',
+          );
+          expect(
+            landmark.x,
+            lessThanOrEqualTo(cat.imageWidth.toDouble()),
+            reason:
+                '${landmark.type}.x exceeds imageWidth: ${landmark.x} > ${cat.imageWidth}',
+          );
+          expect(
+            landmark.y,
+            greaterThanOrEqualTo(0),
+            reason: '${landmark.type}.y is negative: ${landmark.y}',
+          );
+          expect(
+            landmark.y,
+            lessThanOrEqualTo(cat.imageHeight.toDouble()),
+            reason:
+                '${landmark.type}.y exceeds imageHeight: ${landmark.y} > ${cat.imageHeight}',
+          );
         }
       } finally {
         mat.dispose();
@@ -828,11 +881,10 @@ void main() {
       await detector.dispose();
     });
 
-    testWidgets('normalized coordinates should be in 0.0-1.0 range',
-        (tester) async {
-      final detector = CatDetector(
-        mode: CatDetectionMode.full,
-      );
+    testWidgets('normalized coordinates should be in 0.0-1.0 range', (
+      tester,
+    ) async {
+      final detector = CatDetector(mode: CatDetectionMode.full);
       await detector.initialize();
 
       final ByteData data = await rootBundle.load(_catImagePath);
@@ -847,23 +899,33 @@ void main() {
       for (final landmark in cat.face!.landmarks) {
         final xNorm = landmark.xNorm(cat.imageWidth);
         final yNorm = landmark.yNorm(cat.imageHeight);
-        expect(xNorm, greaterThanOrEqualTo(0.0),
-            reason: '${landmark.type}.xNorm < 0');
-        expect(xNorm, lessThanOrEqualTo(1.0),
-            reason: '${landmark.type}.xNorm > 1');
-        expect(yNorm, greaterThanOrEqualTo(0.0),
-            reason: '${landmark.type}.yNorm < 0');
-        expect(yNorm, lessThanOrEqualTo(1.0),
-            reason: '${landmark.type}.yNorm > 1');
+        expect(
+          xNorm,
+          greaterThanOrEqualTo(0.0),
+          reason: '${landmark.type}.xNorm < 0',
+        );
+        expect(
+          xNorm,
+          lessThanOrEqualTo(1.0),
+          reason: '${landmark.type}.xNorm > 1',
+        );
+        expect(
+          yNorm,
+          greaterThanOrEqualTo(0.0),
+          reason: '${landmark.type}.yNorm < 0',
+        );
+        expect(
+          yNorm,
+          lessThanOrEqualTo(1.0),
+          reason: '${landmark.type}.yNorm > 1',
+        );
       }
 
       await detector.dispose();
     });
 
     testWidgets('face bounding box should be valid', (tester) async {
-      final detector = CatDetector(
-        mode: CatDetectionMode.full,
-      );
+      final detector = CatDetector(mode: CatDetectionMode.full);
       await detector.initialize();
 
       final ByteData data = await rootBundle.load(_catImagePath);
@@ -876,12 +938,20 @@ void main() {
       expect(cat.face, isNotNull);
 
       final faceBbox = cat.face!.boundingBox;
-      debugPrint('Face bbox: L=${faceBbox.left}, T=${faceBbox.top}, '
-          'R=${faceBbox.right}, B=${faceBbox.bottom}');
-      expect(faceBbox.right, greaterThan(faceBbox.left),
-          reason: 'Face bbox width <= 0');
-      expect(faceBbox.bottom, greaterThan(faceBbox.top),
-          reason: 'Face bbox height <= 0');
+      debugPrint(
+        'Face bbox: L=${faceBbox.left}, T=${faceBbox.top}, '
+        'R=${faceBbox.right}, B=${faceBbox.bottom}',
+      );
+      expect(
+        faceBbox.right,
+        greaterThan(faceBbox.left),
+        reason: 'Face bbox width <= 0',
+      );
+      expect(
+        faceBbox.bottom,
+        greaterThan(faceBbox.top),
+        reason: 'Face bbox height <= 0',
+      );
     });
   });
 
@@ -890,8 +960,9 @@ void main() {
   // ---------------------------------------------------------------------------
 
   group('CatDetector - faceOnly mode', () {
-    testWidgets('returns face landmarks without the body stages',
-        (tester) async {
+    testWidgets('returns face landmarks without the body stages', (
+      tester,
+    ) async {
       final detector = CatDetector(mode: CatDetectionMode.faceOnly);
       await detector.initialize();
 
@@ -952,9 +1023,11 @@ void main() {
 
       final fullMs = await bench(CatDetectionMode.full);
       final faceMs = await bench(CatDetectionMode.faceOnly);
-      debugPrint('FACEONLY full=${fullMs.toStringAsFixed(1)}ms '
-          'faceOnly=${faceMs.toStringAsFixed(1)}ms '
-          'saved=${(fullMs - faceMs).toStringAsFixed(1)}ms');
+      debugPrint(
+        'FACEONLY full=${fullMs.toStringAsFixed(1)}ms '
+        'faceOnly=${faceMs.toStringAsFixed(1)}ms '
+        'saved=${(fullMs - faceMs).toStringAsFixed(1)}ms',
+      );
 
       // faceOnly skips SSD, species and pose, so it must be cheaper. Debug-mode
       // timings are noisy, so this only asserts the direction.
@@ -1000,8 +1073,9 @@ void main() {
       await detector.dispose();
     });
 
-    testWidgets('should detect cats from a Mat via the isolate',
-        (tester) async {
+    testWidgets('should detect cats from a Mat via the isolate', (
+      tester,
+    ) async {
       final detector = CatDetector(mode: CatDetectionMode.full);
       await detector.initialize();
 
@@ -1039,9 +1113,11 @@ void main() {
 
         expect(fromBytes.length, fromMat.length);
         for (int i = 0; i < fromBytes.length; i++) {
-          expect(fromBytes[i].face?.landmarks.length,
-              fromMat[i].face?.landmarks.length,
-              reason: 'Landmark count mismatch at index $i');
+          expect(
+            fromBytes[i].face?.landmarks.length,
+            fromMat[i].face?.landmarks.length,
+            reason: 'Landmark count mismatch at index $i',
+          );
         }
       } finally {
         mat.dispose();
@@ -1073,16 +1149,18 @@ void main() {
       expect(detector.isReady, true);
 
       final ByteData data = await rootBundle.load(_catImagePath);
-      final List<Cat> results =
-          await detector.detect(data.buffer.asUint8List());
+      final List<Cat> results = await detector.detect(
+        data.buffer.asUint8List(),
+      );
 
       expect(results, isNotEmpty);
 
       await detector.dispose();
     });
 
-    testWidgets('should handle three sequential detect calls on one isolate',
-        (tester) async {
+    testWidgets('should handle three sequential detect calls on one isolate', (
+      tester,
+    ) async {
       final detector = CatDetector(mode: CatDetectionMode.full);
       await detector.initialize();
       expect(detector.isReady, true);
@@ -1104,28 +1182,29 @@ void main() {
     });
 
     testWidgets(
-        'should handle two sequential detectFromMat calls on one isolate',
-        (tester) async {
-      final detector = CatDetector(mode: CatDetectionMode.full);
-      await detector.initialize();
+      'should handle two sequential detectFromMat calls on one isolate',
+      (tester) async {
+        final detector = CatDetector(mode: CatDetectionMode.full);
+        await detector.initialize();
 
-      final ByteData data = await rootBundle.load(_catImagePath);
-      final mat = cv.imdecode(data.buffer.asUint8List(), cv.IMREAD_COLOR);
-      expect(mat.isEmpty, isFalse);
+        final ByteData data = await rootBundle.load(_catImagePath);
+        final mat = cv.imdecode(data.buffer.asUint8List(), cv.IMREAD_COLOR);
+        expect(mat.isEmpty, isFalse);
 
-      try {
-        final List<Cat> first = await detector.detectFromMat(mat);
-        final List<Cat> second = await detector.detectFromMat(mat);
+        try {
+          final List<Cat> first = await detector.detectFromMat(mat);
+          final List<Cat> second = await detector.detectFromMat(mat);
 
-        expect(first, isNotEmpty);
-        expect(second, isNotEmpty);
-        expect(first.length, second.length);
-      } finally {
-        mat.dispose();
-      }
+          expect(first, isNotEmpty);
+          expect(second, isNotEmpty);
+          expect(first.length, second.length);
+        } finally {
+          mat.dispose();
+        }
 
-      await detector.dispose();
-    });
+        await detector.dispose();
+      },
+    );
 
     testWidgets('concurrent detect calls should all resolve', (tester) async {
       final detector = CatDetector(mode: CatDetectionMode.full);
@@ -1174,11 +1253,13 @@ void main() {
       final bytes = _TestUtils.createTinyBlackPng();
       expect(
         () => detector.detect(bytes),
-        throwsA(isA<StateError>().having(
-          (e) => e.message,
-          'message',
-          contains('not initialized'),
-        )),
+        throwsA(
+          isA<StateError>().having(
+            (e) => e.message,
+            'message',
+            contains('not initialized'),
+          ),
+        ),
       );
     });
 

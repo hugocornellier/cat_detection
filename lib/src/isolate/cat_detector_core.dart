@@ -126,10 +126,7 @@ class CatDetectorCore {
     Uint8List? poseModelBytes,
     bool useIsolateInterpreter = true,
     bool useCompiledModel = true,
-    Set<Accelerator> accelerators = const {
-      Accelerator.gpu,
-      Accelerator.cpu,
-    },
+    Set<Accelerator> accelerators = const {Accelerator.gpu, Accelerator.cpu},
     Precision precision = Precision.fp32,
   }) async {
     if (_isInitialized) {
@@ -189,9 +186,7 @@ class CatDetectorCore {
         );
       }
       if (landmarkBytes == null) {
-        throw ArgumentError(
-          'landmarkBytes is required for full/faceOnly mode',
-        );
+        throw ArgumentError('landmarkBytes is required for full/faceOnly mode');
       }
 
       _localizer = FaceLocalizerModel(
@@ -345,8 +340,12 @@ class CatDetectorCore {
     final BoundingBox? bbox = await _localizer!.detect(image);
     if (bbox == null) return <Cat>[];
 
-    final CatFace face =
-        await _runFaceLandmarks(image, bbox, imageWidth, imageHeight);
+    final CatFace face = await _runFaceLandmarks(
+      image,
+      bbox,
+      imageWidth,
+      imageHeight,
+    );
 
     return [
       Cat(
@@ -412,8 +411,9 @@ class CatDetectorCore {
         if (cropW >= 1 && cropH >= 1) {
           final expandedCrop = image.region(cv.Rect(cx1, cy1, cropW, cropH));
           try {
-            final BoundingBox? faceBboxInCrop =
-                await _localizer!.detect(expandedCrop);
+            final BoundingBox? faceBboxInCrop = await _localizer!.detect(
+              expandedCrop,
+            );
 
             if (faceBboxInCrop != null) {
               final faceBboxInImage = BoundingBox.ltrb(
@@ -436,20 +436,22 @@ class CatDetectorCore {
         }
       }
 
-      cats.add(Cat(
-        boundingBox: animal.boundingBox,
-        score: animal.score,
-        species: animal.species,
-        // Null for the near-miss block: the most likely explanation is a
-        // domestic cat the classifier placed on a neighbouring class, so
-        // the label would name an animal this is probably not.
-        breed: animal.species == 'cat' ? animal.breed : null,
-        speciesConfidence: animal.speciesConfidence,
-        face: face,
-        pose: animal.pose,
-        imageWidth: imageWidth,
-        imageHeight: imageHeight,
-      ));
+      cats.add(
+        Cat(
+          boundingBox: animal.boundingBox,
+          score: animal.score,
+          species: animal.species,
+          // Null for the near-miss block: the most likely explanation is a
+          // domestic cat the classifier placed on a neighbouring class, so
+          // the label would name an animal this is probably not.
+          breed: animal.species == 'cat' ? animal.breed : null,
+          speciesConfidence: animal.speciesConfidence,
+          face: face,
+          pose: animal.pose,
+          imageWidth: imageWidth,
+          imageHeight: imageHeight,
+        ),
+      );
     }
 
     return cats;
@@ -477,9 +479,10 @@ class CatDetectorCore {
       landmarks = [
         for (int i = 0; i < coords.length; i++)
           CatLandmark(
-              type: CatLandmarkType.values[i],
-              x: coords[i].$1,
-              y: coords[i].$2),
+            type: CatLandmarkType.values[i],
+            x: coords[i].$1,
+            y: coords[i].$2,
+          ),
       ];
     } finally {
       faceCrop.dispose();

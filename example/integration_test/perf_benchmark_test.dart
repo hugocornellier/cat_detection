@@ -29,13 +29,19 @@ Future<double> _bench(
   await detector.initialize();
   try {
     for (int i = 0; i < _warmup; i++) {
-      await detector.detectFromMat(mat,
-          imageWidth: mat.cols, imageHeight: mat.rows);
+      await detector.detectFromMat(
+        mat,
+        imageWidth: mat.cols,
+        imageHeight: mat.rows,
+      );
     }
     final sw = Stopwatch()..start();
     for (int i = 0; i < _iters; i++) {
-      await detector.detectFromMat(mat,
-          imageWidth: mat.cols, imageHeight: mat.rows);
+      await detector.detectFromMat(
+        mat,
+        imageWidth: mat.cols,
+        imageHeight: mat.rows,
+      );
     }
     sw.stop();
     return sw.elapsedMicroseconds / _iters / 1000.0;
@@ -51,8 +57,10 @@ void main() {
     final data = await rootBundle.load(_catImagePath);
     final mat = cv.imdecode(data.buffer.asUint8List(), cv.IMREAD_COLOR);
     addTearDown(mat.dispose);
-    debugPrint('PERF image ${mat.cols}x${mat.rows}, '
-        '$_iters iters after $_warmup warmup');
+    debugPrint(
+      'PERF image ${mat.cols}x${mat.rows}, '
+      '$_iters iters after $_warmup warmup',
+    );
 
     const configs = <String, PerformanceConfig>{
       'disabled (isolate default)': PerformanceConfig.disabled,
@@ -65,13 +73,17 @@ void main() {
 
     for (final e in configs.entries) {
       full[e.key] = await _bench(mat, CatDetectionMode.full, e.value);
-      debugPrint('PERF full     ${e.key.padRight(28)} '
-          '${full[e.key]!.toStringAsFixed(1)} ms/frame');
+      debugPrint(
+        'PERF full     ${e.key.padRight(28)} '
+        '${full[e.key]!.toStringAsFixed(1)} ms/frame',
+      );
     }
     for (final e in configs.entries) {
       pose[e.key] = await _bench(mat, CatDetectionMode.poseOnly, e.value);
-      debugPrint('PERF poseOnly ${e.key.padRight(28)} '
-          '${pose[e.key]!.toStringAsFixed(1)} ms/frame');
+      debugPrint(
+        'PERF poseOnly ${e.key.padRight(28)} '
+        '${pose[e.key]!.toStringAsFixed(1)} ms/frame',
+      );
     }
 
     final base = full['disabled (isolate default)']!;
@@ -79,10 +91,12 @@ void main() {
     for (final k in configs.keys) {
       final v = full[k]!;
       final face = v - pose[k]!;
-      debugPrint('PERF ${k.padRight(28)} total=${v.toStringAsFixed(1)}ms  '
-          'body=${pose[k]!.toStringAsFixed(1)}ms  '
-          'face=${face.toStringAsFixed(1)}ms  '
-          'speedup vs disabled=${(base / v).toStringAsFixed(2)}x');
+      debugPrint(
+        'PERF ${k.padRight(28)} total=${v.toStringAsFixed(1)}ms  '
+        'body=${pose[k]!.toStringAsFixed(1)}ms  '
+        'face=${face.toStringAsFixed(1)}ms  '
+        'speedup vs disabled=${(base / v).toStringAsFixed(2)}x',
+      );
     }
   }, timeout: const Timeout(Duration(minutes: 10)));
 }
