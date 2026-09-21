@@ -976,8 +976,8 @@ class CatOverlayPainter extends CustomPainter {
         ? null
         : '${(cat.speciesConfidence! * 100).toStringAsFixed(0)}%';
     final List<String> parts = [
-      if (cat.breed != null) cat.breed!,
-      if (confidence != null) confidence,
+      ?cat.breed,
+      ?confidence,
     ];
     final String breedInfo = parts.isEmpty ? '' : ' (${parts.join(', ')})';
     final String label = '${cat.species}$breedInfo';
