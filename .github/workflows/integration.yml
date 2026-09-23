@@ -259,6 +259,15 @@ jobs:
             flutter test integration_test/ -d emulator-5554 2>&1 | tee "$RUNNER_TEMP/android.log"
             grep -q "Some tests failed" "$RUNNER_TEMP/android.log"; status=$?; case "$status" in 0) exit 1 ;; 1) exit 0 ;; *) exit "$status" ;; esac
 
+      # A corrupt NDK download ("Archive is not a ZIP archive") leaves a broken
+      # NDK folder that fails every later Gradle build, so a plain retry fails
+      # the same way. Purge it first, as flutter_litert's CI does, so the retry
+      # downloads a clean copy.
+      - name: Purge Android NDK before retry (attempt 2)
+        continue-on-error: true
+        if: steps.android1.outcome == 'failure'
+        run: rm -rf "$ANDROID_HOME"/ndk/* "$ANDROID_HOME"/.temp
+
       - name: Run integration tests on Android emulator (attempt 2)
         id: android2
         continue-on-error: true
@@ -278,6 +287,11 @@ jobs:
           script: |
             flutter test integration_test/ -d emulator-5554 2>&1 | tee "$RUNNER_TEMP/android.log"
             grep -q "Some tests failed" "$RUNNER_TEMP/android.log"; status=$?; case "$status" in 0) exit 1 ;; 1) exit 0 ;; *) exit "$status" ;; esac
+
+      - name: Purge Android NDK before retry (attempt 3)
+        continue-on-error: true
+        if: steps.android1.outcome == 'failure' && steps.android2.outcome == 'failure'
+        run: rm -rf "$ANDROID_HOME"/ndk/* "$ANDROID_HOME"/.temp
 
       - name: Run integration tests on Android emulator (attempt 3)
         if: steps.android1.outcome == 'failure' && steps.android2.outcome == 'failure'
