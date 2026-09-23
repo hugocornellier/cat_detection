@@ -1,3 +1,11 @@
+## 4.1.0
+
+* Depend on `animal_detection ^4.1.1` and `flutter_litert ^3.9.1`. The
+  flutter_litert release updates Android's CompiledModel runtime to LiteRT
+  Next 2.2.0.
+* The example app depends on `camera_desktop ^1.2.2`.
+* No API changes.
+
 ## 4.0.0
 
 * **Detections that are not cats are now dropped instead of returned.** In `full`
