@@ -271,11 +271,11 @@ await detector.initialize();
 
 ### LiteRT Next CompiledModel
 
-CompiledModel is opt-in and covers the active body, classification, pose,
-face-localizer, and face-landmark stages:
+CompiledModel is on by default and covers the active body, classification,
+pose, face-localizer, and face-landmark stages:
 
 ```dart
-// Try GPU first, with verified CPU/stage fallback.
+// Try GPU first, with verified CPU/stage fallback. This is the default.
 await detector.initialize(useCompiledModel: true);
 
 // Pin CompiledModel to CPU.
@@ -287,8 +287,9 @@ await detector.initialize(
 
 Every requested compiled graph is compared with a plain-CPU Interpreter before
 use. A numerically unsafe GPU graph retries on CompiledModel CPU; if that also
-fails, only that stage uses Interpreter. Interpreter remains the default and
-`Precision.fp32` is used unless explicitly overridden.
+fails, only that stage uses Interpreter. Pass `useCompiledModel: false` to use
+the Interpreter for every stage. `Precision.fp32` is used unless explicitly
+overridden.
 
 ## Live Camera Detection
 
