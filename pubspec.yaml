@@ -1,6 +1,6 @@
 name: cat_detection
 description: "Cat face and landmark detection using on-device LiteRT (formerly TensorFlow Lite) models."
-version: 4.1.0
+version: 4.1.1
 repository: https://github.com/hugocornellier/cat_detection
 
 topics:

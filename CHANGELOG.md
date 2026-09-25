@@ -1,3 +1,19 @@
+## 4.1.1
+
+* `detectFromCameraImage` now reads a desktop frame's byte order from
+  `CameraImage.format.raw` instead of assuming BGRA only on macOS, so camera
+  streams decode correctly on camera_desktop 2.0.0 (BGRA on every desktop
+  platform) as well as 1.x (RGBA on Linux and Windows). Linux and Windows
+  frames from camera_desktop 2.0.0 were previously decoded with red and blue
+  swapped. Other `format.raw` values keep the old default, and an explicit
+  `isBgra` still wins, so drop any `isBgra: Platform.isMacOS` you pass.
+* Depend on `animal_detection ^4.1.2` and `flutter_litert ^3.9.2`, which
+  provides the frame-based default.
+* Correct the `useCompiledModel` docs: it has defaulted to on since 3.0.1, not
+  off.
+* The example app depends on `camera_desktop ^2.0.0`.
+* No API changes.
+
 ## 4.1.0
 
 * Depend on `animal_detection ^4.1.1` and `flutter_litert ^3.9.1`. The
