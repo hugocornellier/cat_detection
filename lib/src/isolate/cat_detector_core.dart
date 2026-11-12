@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/foundation.dart';
 import 'package:opencv_dart/opencv_dart.dart' as cv;
 import 'package:animal_detection/animal_detection.dart';
@@ -73,9 +75,16 @@ class CatDetectorCore {
   /// (macOS M4 Max, 57.4ms / 32.2ms / 3.6ms). Auto mode resolves to XNNPACK
   /// everywhere except iOS, so the landmark stage defaults to GPU instead.
   /// On platforms without a GPU delegate this falls through to bare CPU,
-  /// which is the correct second choice for this graph.
+  /// which is the correct second choice for this graph. Android has had no
+  /// Interpreter GPU delegate since flutter_litert 4.0.0: there
+  /// [PerformanceConfig.gpu] prints a warning and runs XNNPACK, so Android
+  /// asks for [PerformanceConfig.xnnpack] directly, the same runtime without
+  /// the warning. Bare CPU was only measured on macOS.
   PerformanceConfig get effectiveLandmarkConfig =>
-      landmarkPerformanceConfig ?? const PerformanceConfig.gpu();
+      landmarkPerformanceConfig ??
+      (Platform.isAndroid
+          ? const PerformanceConfig.xnnpack()
+          : const PerformanceConfig.gpu());
 
   /// Minimum species-classifier confidence a detection must reach to be
   /// returned. `0.0` disables the check, which is the default.

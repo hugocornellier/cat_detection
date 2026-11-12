@@ -141,8 +141,11 @@ class CatDetector {
 
   /// Optional override of [performanceConfig] for the face landmark stage alone.
   ///
-  /// Null means the landmark stage uses [performanceConfig] like every other
-  /// stage, which is the previous and still the default behaviour.
+  /// Null does not mean [performanceConfig]: the landmark stage then asks for
+  /// [PerformanceConfig.gpu] on iOS and macOS (bare CPU on Linux and Windows,
+  /// which have no Interpreter GPU delegate) and for
+  /// [PerformanceConfig.xnnpack] on Android. This only applies when the stage
+  /// runs on the Interpreter; CompiledModel uses its own accelerators.
   ///
   /// This exists because the best delegate genuinely differs per stage, and a
   /// single pipeline-wide setting cannot express that. Measured on macOS arm64
@@ -167,9 +170,10 @@ class CatDetector {
   /// override will not help it yet. It is wired up now so the routing exists
   /// once a compatible asset ships.
   ///
-  /// Only macOS has been measured. iOS resolves Metal from a different binary
-  /// and Android uses an entirely different GPU delegate, so verify on device
-  /// before setting this in production.
+  /// Only macOS has been measured. iOS resolves Metal from a different binary,
+  /// and Android has had no Interpreter GPU delegate since flutter_litert 4.0.0
+  /// ([PerformanceConfig.gpu] runs XNNPACK there), so verify on device before
+  /// setting this in production.
   final PerformanceConfig? landmarkPerformanceConfig;
 
   /// Minimum species-classifier confidence a detection must reach to be

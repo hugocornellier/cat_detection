@@ -1,3 +1,22 @@
+## 4.1.2
+
+* Depend on `flutter_litert ^4.1.1` (was `^3.9.2`) and
+  `animal_detection ^4.1.3`. This package's API is unchanged, but
+  flutter_litert 4.x needs Android `minSdk` 24 and iOS 15.0, Flutter's
+  defaults for new apps.
+* Android: flutter_litert 4.0.0 removed the Interpreter GPU delegate, so
+  `PerformanceConfig.gpu()` runs XNNPACK there. CompiledModel, the default,
+  still uses the GPU on Android.
+* Android: when the face landmark stage runs on the Interpreter (with
+  `useCompiledModel: false`, or when CompiledModel rejects the model), it now
+  asks for XNNPACK instead of the GPU. flutter_litert 4.x has no Android
+  Interpreter GPU delegate, so the GPU request already ran XNNPACK and only
+  added a warning. Speed and results are unchanged. `landmarkPerformanceConfig`
+  still overrides it, and CompiledModel (the default) is unchanged.
+* The `landmarkPerformanceConfig` docs now give its real default: when it is
+  null, the landmark stage does not follow `performanceConfig`.
+* No API changes.
+
 ## 4.1.1
 
 * `detectFromCameraImage` now reads a desktop frame's byte order from
